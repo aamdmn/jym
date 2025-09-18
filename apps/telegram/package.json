@@ -8,26 +8,20 @@
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "start": "bun ./dist/index.js",
     "lint": "echo 'No linting configured for Bun app'",
-    "check-types": "tsc --noEmit",
-    "db:push": "drizzle-kit push",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.22",
+    "@jym/backend": "*",
     "ai": "^5.0.27",
+    "convex": "^1.27.0",
     "dotenv": "^17.2.1",
-    "drizzle-orm": "^0.44.5",
     "grammy": "^1.38.1",
-    "pg": "^8.16.3",
     "zod": "^4.1.5"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
     "@types/bun": "latest",
-    "@types/pg": "^8.15.5",
-    "drizzle-kit": "^0.31.4",
     "typescript": "^5"
   }
 }

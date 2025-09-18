@@ -1,63 +1,57 @@
-import { users } from "../db/schema";
-import { db } from "../db";
-import { eq } from "drizzle-orm";
+import { api } from "@jym/backend/convex/_generated/api";
+import { ConvexHttpClient } from "convex/browser";
 
-export type UserSession = {
-	step?:
-		| "pushups"
-		| "fitness_level"
-		| "goals"
-		| "equipment"
-		| "injuries"
-		| "ready";
-	tempData?: Record<string, any>;
-	conversationContext?: any[];
-};
+if (!process.env.CONVEX_URL) {
+  throw new Error("CONVEX_URL is not set");
+}
 
-const sessions = new Map<string, UserSession>();
+const convex = new ConvexHttpClient(process.env.CONVEX_URL);
 
-export const getSession = (userId: string): UserSession => {
-	if (!sessions.has(userId)) {
-		sessions.set(userId, {});
-	}
-	return sessions.get(userId)!;
-};
+export const getOrCreateUser = async ({
+  telegramId,
+  username,
+  firstName,
+  lastName,
+}: {
+  telegramId: number;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+}) => {
+  try {
+    // First, try to find existing user by telegramId
+    const existingUser = await convex.query(api.users.getUserByTelegramId, {
+      telegramId,
+    });
 
-export const updateSession = (userId: string, update: Partial<UserSession>) => {
-	const current = getSession(userId);
-	sessions.set(userId, { ...current, ...update });
+    if (existingUser) {
+      return existingUser;
+    }
+
+    // If user doesn't exist, create a new one
+    const userId = await convex.mutation(api.users.createUser, {
+      telegramId,
+      username: username || "",
+      firstName: firstName || "",
+      lastName: lastName || "",
+    });
+
+    // Return the newly created user
+    return await convex.query(api.users.getUserByTelegramId, {
+      telegramId,
+    });
+  } catch (error) {
+    console.error("Error in getOrCreateUser:", error);
+    throw error;
+  }
 };
 
 export const clearSession = (userId: string) => {
-	sessions.delete(userId);
+  // Implementation for clearing session if needed
+  console.log(`Clearing session for user: ${userId}`);
 };
 
-export const getOrCreateUser = async (
-	telegramId: string,
-	username?: string,
-) => {
-	try {
-		const existing = await db
-			.select()
-			.from(users)
-			.where(eq(users.telegramId, telegramId))
-			.limit(1);
-
-		if (existing.length > 0) {
-			return existing[0];
-		}
-
-		const newUser = await db
-			.insert(users)
-			.values({
-				telegramId,
-				username,
-			})
-			.returning();
-
-		return newUser[0];
-	} catch (error) {
-		console.error("Error in getOrCreateUser:", error);
-		throw error;
-	}
+export const updateSession = (userId: string, data: any) => {
+  // Implementation for updating session if needed
+  console.log(`Updating session for user: ${userId}`, data);
 };
