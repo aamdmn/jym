@@ -1,10 +1,25 @@
+import { IconBrandTelegram, IconDice2Filled } from "@tabler/icons-react";
+import { Button } from "@/components/ui/button";
+
 export default function Home() {
   return (
-    <div className="grid min-h-screen grid-rows-[20px_1fr_20px] items-center justify-items-center gap-16 p-8 pb-20 font-sans sm:p-20">
-      <main className="flex w-full max-w-4xl flex-col items-start justify-center">
-        <h1 className="mt-52 font-bold text-2xl">jym</h1>
+    <div className="flex min-h-screen justify-center font-sans">
+      <main className="flex w-full max-w-4xl flex-col items-start">
+        <div className="mt-10 flex items-center justify-center gap-2">
+          <IconDice2Filled className="size-7 stroke-[1.3px]" />
+          <span className="font-light text-2xl uppercase">jym</span>
+        </div>
 
-        <p className="mt-10 text-gray-500 text-xl">coming soon....</p>
+        <div className="mt-36 flex w-full flex-col items-center justify-center gap-2">
+          <h1 className="text-center font-medium text-6xl leading-tight tracking-tight">
+            Adaptive Fitness Coach That Actually Listens
+          </h1>
+
+          <Button className="mt-10" size={"lg"} variant="outline">
+            <IconBrandTelegram className="size-5" />
+            Get Started on Telegram
+          </Button>
+        </div>
       </main>
     </div>
   );
