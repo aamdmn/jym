@@ -13,5 +13,32 @@ export default defineSchema({
     equipment: v.string(),
     injuries: v.string(),
     lastWorkoutDate: v.optional(v.string()),
+    // Add conversation persistence
+    lastResponseId: v.optional(v.string()),
+    conversationHistory: v.optional(
+      v.array(
+        v.object({
+          role: v.string(),
+          content: v.string(),
+          timestamp: v.number(),
+        })
+      )
+    ),
   }),
+
+  // Track onboarding sessions
+  onboardingSessions: defineTable({
+    telegramId: v.number(),
+    currentQuestionIndex: v.number(),
+    conversationHistory: v.array(
+      v.object({
+        role: v.string(),
+        content: v.string(),
+        timestamp: v.number(),
+      })
+    ),
+    isComplete: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_telegram_id", ["telegramId"]),
 });

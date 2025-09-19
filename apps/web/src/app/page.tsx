@@ -15,9 +15,9 @@ export default function Home() {
             Adaptive Fitness Coach That Actually Listens
           </h1>
 
-          <Button className="mt-10" size={"lg"} variant="outline">
+          <Button className="mt-8" size={"lg"} variant="outline">
             <IconBrandTelegram className="size-5" />
-            Get Started on Telegram
+            Get Started
           </Button>
         </div>
       </main>

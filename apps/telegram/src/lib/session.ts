@@ -29,7 +29,7 @@ export const getOrCreateUser = async ({
     }
 
     // If user doesn't exist, create a new one
-    const userId = await convex.mutation(api.users.createUser, {
+    await convex.mutation(api.users.createUser, {
       telegramId,
       username: username || "",
       firstName: firstName || "",
@@ -41,17 +41,20 @@ export const getOrCreateUser = async ({
       telegramId,
     });
   } catch (error) {
-    console.error("Error in getOrCreateUser:", error);
+    // console.error("Error in getOrCreateUser:", error);
     throw error;
   }
 };
 
 export const clearSession = (userId: string) => {
   // Implementation for clearing session if needed
-  console.log(`Clearing session for user: ${userId}`);
+  // console.log(`Clearing session for user: ${userId}`);
 };
 
-export const updateSession = (userId: string, data: any) => {
+export const updateSession = (
+  userId: string,
+  data: Record<string, unknown>
+) => {
   // Implementation for updating session if needed
-  console.log(`Updating session for user: ${userId}`, data);
+  // console.log(`Updating session for user: ${userId}`, data);
 };

@@ -1,82 +1,83 @@
-# controversial fitness coach telegram bot
+# ai fitness coach telegram bot
 
-a blunt, no-bullshit fitness coach that actually adapts to you. generates workouts, remembers your feedback, and pushes you to get results.
+an adaptive fitness coach that gets you moving immediately. powered by ai, feels like texting a friend.
 
 ## personality
-- always lowercase
-- short, punchy messages
-- calls out excuses
-- swears occasionally
+
+- always lowercase, no caps
+- short punchy messages
 - breaks thoughts into multiple messages
-- human-like texting style
+- encouraging but real
+- gets you moving fast
 
 ## features
-- emotional onboarding (starts with pushups)
-- adaptive workout generation based on your equipment and level
-- remembers your feedback and adjusts future workouts
-- tracks your progress and energy patterns
-- no generic templates - every workout is personalized
+
+- instant challenge when you start (no lengthy onboarding)
+- adapts difficulty based on your energy
+- remembers your conversation context
+- human-like typing and message flow
+- powered by vercel ai sdk with agent architecture
 
 ## setup
 
 1. create a telegram bot via [@BotFather](https://t.me/botfather)
-2. set up postgresql database
+2. get your convex url from the backend package
 3. create `.env` file:
 
 ```bash
 # telegram bot token from @BotFather
 TELEGRAM_BOT_API_KEY=your_bot_token_here
 
-# postgresql connection
-DATABASE_URL=postgresql://user:password@localhost:5432/fitness_coach
-
-# openai api key for workout generation
+# openai api key for ai sdk
 OPENAI_API_KEY=your_openai_api_key_here
+
+# convex url for database
+CONVEX_URL=your_convex_url_here
 ```
 
 4. install dependencies:
+
 ```bash
 bun install
 ```
 
-5. run database migrations:
+5. test the agent locally (optional):
+
 ```bash
-bun run db:push
+bun run src/test-bot.ts
 ```
 
 6. start the bot:
+
 ```bash
 bun run dev
 ```
 
 ## usage
 
-1. start conversation: `/start`
-2. complete onboarding (takes ~2 minutes)
-3. request workout: `/workout`
-4. give feedback after each session
-5. bot adapts based on your responses
+1. start conversation: `/start` (immediately gives you a challenge)
+2. just chat naturally - the bot adapts to you
+3. quick workout: `/workout`
+4. reset conversation: `/reset`
+5. help: `/help`
 
 ## tech stack
+
 - grammy - telegram bot framework
-- vercel ai sdk v5 - llm abstraction
-- drizzle orm - database
+- vercel ai sdk - agent framework with tools
+- convex - backend database (via monorepo)
 - bun - runtime
-- openai gpt-4o-mini - workout generation
+- openai gpt-4o-mini - llm for conversations
 
 ## troubleshooting
 
-### bot stops responding during onboarding
-- check console logs for errors
-- make sure database is running and accessible
-- test db connection: `bun run src/test-db.ts`
-- if equipment message is too long, bot now handles it properly
-
 ### common issues
+
 - **"TELEGRAM_BOT_API_KEY is not set"** - add your bot token to .env
-- **"DATABASE_URL is not set"** - add postgresql connection string to .env
 - **"OPENAI_API_KEY is not set"** - add openai api key to .env
-- **bot doesn't respond** - check if database migrations were run
+- **"CONVEX_URL is not set"** - add convex url to .env
+- **bot doesn't respond** - check console logs for errors
+- **test locally first** - run `bun run src/test-bot.ts` to test the agent without telegram
 
 To install dependencies:
 
