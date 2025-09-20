@@ -1,13 +1,17 @@
 
-
 SLC features:
-    ☐ bot responding
+    ✔ bot responding @started(25-09-19 19:49) @done(25-09-19 19:49)
     ☐ onboarding
+        ☐ refactor the agent logic, use simple agent with tools
     ☐ workout tracking & generation
     ☐ show excersie in web
+        ☐ auth for web - telegram
+        ☐ add email for the user - for the weekly summaries
     ☐ collect feedback
-    ☐ proactivity, memory
+    ☐ proactivity - send messgges
+    ☐ memory - remember things
     ☐ email weekly summaries
+    ☐ billing
 
 Nice to have:
     ☐ integrate voice
