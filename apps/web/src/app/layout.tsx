@@ -17,27 +17,27 @@ const serif = localFont({
   variable: "--font-instrument-serif",
   src: [
     {
-      path: "../../public/fonts/Erode-Light.woff2",
+      path: "../fonts/Erode-Light.woff2",
       weight: "300",
       style: "normal",
     },
     {
-      path: "../../public/fonts/Erode-Regular.woff2",
+      path: "../fonts/Erode-Regular.woff2",
       weight: "400",
       style: "normal",
     },
     {
-      path: "../../public/fonts/Erode-Medium.woff2",
+      path: "../fonts/Erode-Medium.woff2",
       weight: "500",
       style: "normal",
     },
     {
-      path: "../../public/fonts/Erode-SemiBold.woff2",
+      path: "../fonts/Erode-Semibold.woff2",
       weight: "600",
       style: "normal",
     },
     {
-      path: "../../public/fonts/Erode-Bold.woff2",
+      path: "../fonts/Erode-Bold.woff2",
       weight: "700",
       style: "normal",
     },
