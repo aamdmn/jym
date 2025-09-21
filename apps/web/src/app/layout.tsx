@@ -45,7 +45,7 @@ const serif = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "jym | adaptive fitness coach",
+  title: "JYM | adaptive fitness coach",
   description: "adaptive fitness coach",
 };
 

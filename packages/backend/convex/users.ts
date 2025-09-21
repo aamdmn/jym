@@ -15,8 +15,49 @@ export const getUserByTelegramId = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("telegramId"), args.telegramId))
+      .withIndex("by_telegram_id", (q) => q.eq("telegramId", args.telegramId))
       .first();
+  },
+});
+
+// Alias for consistency with context manager
+export const get = query({
+  args: {
+    telegramId: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_telegram_id", (q) => q.eq("telegramId", args.telegramId))
+      .first();
+  },
+});
+
+// Alias for creating user with additional fields
+export const create = mutation({
+  args: {
+    username: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    telegramId: v.number(),
+    onboardingComplete: v.boolean(),
+    fitnessLevel: v.string(),
+    goals: v.string(),
+    equipment: v.string(),
+    injuries: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("users", {
+      username: args.username || "",
+      firstName: args.firstName || "",
+      lastName: args.lastName || "",
+      telegramId: args.telegramId,
+      onboardingComplete: args.onboardingComplete,
+      fitnessLevel: args.fitnessLevel || "",
+      goals: args.goals || "",
+      equipment: args.equipment || "",
+      injuries: args.injuries || "",
+    });
   },
 });
 
