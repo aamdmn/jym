@@ -3,8 +3,6 @@ import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { AuthTest } from "../components/AuthTest";
 import { PreloadedUserWrapper } from "../components/PreloadedUserWrapper";
-import { ServerUserProfile } from "../components/ServerUserProfile";
-import { SimpleServerProfile } from "../components/SimpleServerProfile";
 
 export default function Home() {
   return (
@@ -36,16 +34,6 @@ export default function Home() {
           <h2 className="font-semibold text-2xl">
             Server-Side User Data Examples
           </h2>
-
-          {/* Test basic server-side fetching first */}
-          <Suspense fallback={<div>Loading simple server test...</div>}>
-            <SimpleServerProfile />
-          </Suspense>
-
-          {/* Approach 1: fetchQuery (static, non-reactive) */}
-          <Suspense fallback={<div>Loading server user profile...</div>}>
-            <ServerUserProfile />
-          </Suspense>
 
           {/* Approach 2: preloadQuery + usePreloadedQuery (server-rendered + reactive) */}
           <Suspense fallback={<div>Loading preloaded user profile...</div>}>

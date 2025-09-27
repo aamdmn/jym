@@ -1,6 +1,7 @@
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
+import { phoneNumber } from "better-auth/plugins";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
@@ -27,12 +28,24 @@ export const createAuth = (
     },
     baseURL: siteUrl,
     database: authComponent.adapter(ctx),
-    // Configure simple, non-verified email/password to get started
-    emailAndPassword: {
-      enabled: true,
-      requireEmailVerification: false,
-    },
     plugins: [
+      phoneNumber({
+        sendOTP: ({ phoneNumber: phoneNumberParam, code }, request) => {
+          console.log("Sending OTP to", phoneNumberParam);
+          console.log("OTP code", code);
+          console.log("Request", request);
+        },
+        signUpOnVerification: {
+          getTempEmail: (phoneNumberParam) => {
+            return `${phoneNumberParam}@jym.coach`;
+          },
+          //optionally, you can also pass `getTempName` function to generate a temporary name for the user
+          getTempName: (phoneNumberParam) => {
+            return phoneNumberParam; //by default, it will use the phone number as the name
+          },
+        },
+      }),
+
       // The Convex plugin is required for Convex compatibility
       convex(),
     ],

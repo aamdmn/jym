@@ -10,9 +10,10 @@
 
 import type * as agents from "../agents.js";
 import type * as auth from "../auth.js";
-import type * as conversations from "../conversations.js";
 import type * as http from "../http.js";
+import type * as loopmessage from "../loopmessage.js";
 import type * as playground from "../playground.js";
+import type * as test_loopmessage from "../test_loopmessage.js";
 import type * as users from "../users.js";
 
 import type {
@@ -32,9 +33,10 @@ import type {
 declare const fullApi: ApiFromModules<{
   agents: typeof agents;
   auth: typeof auth;
-  conversations: typeof conversations;
   http: typeof http;
+  loopmessage: typeof loopmessage;
   playground: typeof playground;
+  test_loopmessage: typeof test_loopmessage;
   users: typeof users;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
