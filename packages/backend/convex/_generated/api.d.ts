@@ -13,7 +13,9 @@ import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as loopmessage from "../loopmessage.js";
 import type * as playground from "../playground.js";
+import type * as prompts from "../prompts.js";
 import type * as test_loopmessage from "../test_loopmessage.js";
+import type * as tools from "../tools.js";
 import type * as users from "../users.js";
 
 import type {
@@ -36,7 +38,9 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   loopmessage: typeof loopmessage;
   playground: typeof playground;
+  prompts: typeof prompts;
   test_loopmessage: typeof test_loopmessage;
+  tools: typeof tools;
   users: typeof users;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

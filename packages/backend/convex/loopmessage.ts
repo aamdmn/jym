@@ -1,8 +1,8 @@
 import { createThread, listUIMessages } from "@convex-dev/agent";
 import { v } from "convex/values";
-import { components, internal } from "./_generated/api";
+import { api, components, internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
-import { jymAgent } from "./agents";
+import { createJymAgent, createOnboardingAgent } from "./agents";
 
 /**
  * Process incoming LoopMessage webhook data
@@ -140,10 +140,27 @@ export const generateResponse = internalAction({
         console.log(`Created new thread: ${threadId}`);
       }
 
-      // Generate response using Jym agent
-      const result = await jymAgent.generateText(
+      // Check user's onboarding status to determine which agent to use
+      const userProfile = await ctx.runQuery(api.users.getUserOnboardingInfo, {
+        userId: actualUserId,
+      });
+
+      // Create dynamic agent with user-specific context
+      const agent = userProfile?.onboardingComplete
+        ? createJymAgent(ctx, actualUserId)
+        : createOnboardingAgent(ctx, actualUserId);
+      const agentName = userProfile?.onboardingComplete
+        ? "Jym"
+        : "Onboarding Jym";
+
+      console.log(
+        `Using ${agentName} for user ${actualUserId} (onboarding complete: ${userProfile?.onboardingComplete})`
+      );
+
+      // Generate response using the appropriate agent with userId context
+      const result = await agent.generateText(
         ctx,
-        { threadId },
+        { threadId, userId: actualUserId },
         {
           prompt: messageText,
         }
@@ -158,10 +175,10 @@ export const generateResponse = internalAction({
         `Generated response for message ${messageId}: ${result.text}`
       );
 
-      // Send response back via LoopMessage
-      await ctx.runAction(internal.loopmessage.sendMessage, {
+      // Split response into separate messages and send them sequentially
+      await ctx.runAction(internal.loopmessage.sendSplitMessages, {
         phoneNumber,
-        message: result.text,
+        responseText: result.text,
         originalMessageId: messageId,
         originalWebhookId: webhookId,
       });
@@ -169,9 +186,10 @@ export const generateResponse = internalAction({
       console.error("Error generating response:", error);
 
       // Send fallback message
-      await ctx.runAction(internal.loopmessage.sendMessage, {
+      await ctx.runAction(internal.loopmessage.sendSplitMessages, {
         phoneNumber,
-        message: "Sorry, I encountered an issue. Please try again in a moment.",
+        responseText:
+          "Sorry, I encountered an issue. Please try again in a moment.",
         originalMessageId: messageId,
         originalWebhookId: webhookId,
       });
@@ -238,6 +256,81 @@ export const sendMessage = internalAction({
       );
     } catch (error) {
       console.error("Error sending message via LoopMessage:", error);
+    }
+
+    return null;
+  },
+});
+
+/**
+ * Split agent response into multiple messages and send them with realistic delays
+ */
+export const sendSplitMessages = internalAction({
+  args: {
+    phoneNumber: v.string(),
+    responseText: v.string(),
+    originalMessageId: v.optional(v.string()),
+    originalWebhookId: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { phoneNumber, responseText, originalMessageId, originalWebhookId } =
+      args;
+
+    try {
+      // Split response by newlines and filter out empty lines
+      const messages = responseText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+
+      console.log(
+        `Sending ${messages.length} split messages to ${phoneNumber}`
+      );
+
+      // Send each message with realistic delays
+      for (let i = 0; i < messages.length; i++) {
+        const message = messages[i];
+
+        // Calculate typing delay based on message length (simulate realistic typing speed)
+        // Average typing speed: ~40 WPM = ~200 characters per minute = ~3.3 chars per second
+        // Add some randomness and minimum delay
+        const typingDelayMs = Math.max(
+          800, // Minimum delay of 800ms
+          message.length * 50 + Math.random() * 500 // ~50ms per character + random variance
+        );
+
+        // Add delay before sending (except for first message)
+        if (i > 0) {
+          await new Promise((resolve) => setTimeout(resolve, typingDelayMs));
+        }
+
+        console.log(
+          `Sending message ${i + 1}/${messages.length}: "${message}" (after ${i > 0 ? typingDelayMs : 0}ms delay)`
+        );
+
+        // Send the individual message
+        await ctx.runAction(internal.loopmessage.sendMessage, {
+          phoneNumber,
+          message,
+          originalMessageId: i === 0 ? originalMessageId : undefined, // Only link first message to original
+          originalWebhookId: i === 0 ? originalWebhookId : undefined,
+        });
+      }
+
+      console.log(
+        `Successfully sent all ${messages.length} split messages to ${phoneNumber}`
+      );
+    } catch (error) {
+      console.error("Error sending split messages:", error);
+
+      // Fallback: send original response as single message
+      await ctx.runAction(internal.loopmessage.sendMessage, {
+        phoneNumber,
+        message: responseText,
+        originalMessageId,
+        originalWebhookId,
+      });
     }
 
     return null;
