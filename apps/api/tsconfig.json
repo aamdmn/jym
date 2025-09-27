@@ -1,0 +1,6 @@
+{
+  "extends": "@repo/typescript-config/backend.json",
+  "compilerOptions": {
+    "jsxImportSource": "hono/jsx"
+  }
+}

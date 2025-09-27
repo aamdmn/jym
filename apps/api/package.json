@@ -1,0 +1,22 @@
+{
+  "name": "api",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --hot src/index.ts --port 3001",
+    "build": "bun build src/index.ts --outdir ./dist",
+    "start": "bun run dist/index.js",
+    "lint": "bun ultracite fix --unsafe",
+    "check-types": "bun --bun tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.34",
+    "ai": "^5.0.51",
+    "hono": "^4.9.8",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "*",
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}
