@@ -1,11 +1,20 @@
 "use client";
 
-import { IconDice2Filled, IconLogin2, IconMessage } from "@tabler/icons-react";
+import {
+  IconDice2Filled,
+  IconLoader2,
+  IconLogin2,
+  IconMessage,
+  IconUser,
+} from "@tabler/icons-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
 
 export default function Home() {
+  const { data, isPending } = authClient.useSession();
+
   function createiMessageDeepLink(): void {
     const recipient = "sandbox.loopmessage.com@imsg.im";
     const message = "yo, what's up jym?";
@@ -24,11 +33,22 @@ export default function Home() {
             <span className="font-light text-2xl uppercase">jym</span>
           </div>
           <div>
-            <Link href="/login">
-              <Button size={"sm"} variant="ghost">
-                <IconLogin2 className="size-5 stroke-[1.3px]" />
-                Login
-              </Button>
+            <Link href={data ? "/app" : "/login"}>
+              {isPending ? (
+                <Button size={"sm"} variant="ghost">
+                  <IconLoader2 className="size-4 animate-spin stroke-[1.3px]" />
+                  Loading...
+                </Button>
+              ) : (
+                <Button size={"sm"} variant="ghost">
+                  {data ? (
+                    <IconUser className="size-5 stroke-[1.3px]" />
+                  ) : (
+                    <IconLogin2 className="size-5 stroke-[1.3px]" />
+                  )}
+                  {data ? "App" : "Login"}
+                </Button>
+              )}
             </Link>
           </div>
         </div>

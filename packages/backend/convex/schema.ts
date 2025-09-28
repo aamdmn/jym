@@ -19,4 +19,34 @@ export default defineSchema({
     .index("by_user_id", ["userId"])
     .index("by_telegram_id", ["telegramId"])
     .index("by_platform", ["platform"]),
+
+  // Triggers for scheduled proactive messages
+  triggers: defineTable({
+    userId: v.string(), // User who the trigger belongs to
+    phoneNumber: v.string(), // Phone number to send the message to
+    triggerMessage: v.string(), // The message/context for the agent
+    scheduledTime: v.number(), // When the trigger should fire (timestamp)
+    threadId: v.optional(v.string()), // Agent thread ID if available
+    metadata: v.optional(
+      v.object({
+        type: v.optional(v.string()), // Type of trigger (e.g., "workout_reminder")
+        context: v.optional(v.string()), // Additional context for the trigger
+      })
+    ),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("executing"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("cancelled")
+    ),
+    scheduledFunctionId: v.optional(v.id("_scheduled_functions")), // Reference to the scheduled function
+    createdAt: v.number(), // When the trigger was created
+    completedAt: v.optional(v.number()), // When the trigger was completed/failed/cancelled
+    error: v.optional(v.string()), // Error message if failed
+  })
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_scheduled_time", ["scheduledTime"])
+    .index("by_user_and_status", ["userId", "status"]),
 });

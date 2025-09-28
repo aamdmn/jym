@@ -1,6 +1,6 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
-import { api } from "./_generated/api";
+import { api, components, internal } from "./_generated/api";
 
 export const checkOnboardingTool = createTool({
   description: "Check if the user has completed onboarding questions",
@@ -60,6 +60,86 @@ export const completeOnboardingTool = createTool({
       userId: ctx.userId,
     });
     console.log("completed onboarding for user", ctx.userId);
+    return {
+      success: true,
+    };
+  },
+});
+
+export const createTriggerTool = createTool({
+  description:
+    "Create a scheduled trigger/reminder to proactively check in with the user at a specific time. Use this when the user mentions they'll do something at a specific time (e.g., 'I'll go to the gym in 1 hour' or 'I'm working out tomorrow at 3pm'). The trigger will allow you to send a proactive message to the user at that time.",
+  args: z.object({
+    triggerMessage: z
+      .string()
+      .describe(
+        "The internal message/context for the agent about what to check or remind about. This is NOT sent to the user directly - you will generate an appropriate message when the trigger fires. Example: 'User said they would go to the gym at this time - check if they made it and provide encouragement'"
+      ),
+    runAt: z
+      .number()
+      .describe(
+        "The timestamp (milliseconds since epoch) when the trigger should fire. Calculate this from the current time plus the delay mentioned by the user."
+      ),
+    triggerType: z
+      .string()
+      .optional()
+      .describe(
+        "Optional type of trigger (e.g., 'workout_reminder', 'check_in', 'motivation')"
+      ),
+    additionalContext: z
+      .string()
+      .optional()
+      .describe(
+        "Optional additional context about the trigger (e.g., 'legs day', 'morning run')"
+      ),
+  }),
+  handler: async (ctx, args, _options) => {
+    if (!ctx.userId) {
+      throw new Error("No userId available in context");
+    }
+
+    // Get the user's phone number from betterAuth
+    const user = await ctx.runQuery(components.betterAuth.lib.findOne, {
+      model: "user",
+      where: [{ field: "id", value: ctx.userId }],
+    });
+
+    if (!user?.phoneNumber) {
+      throw new Error("User phone number not found");
+    }
+
+    // Create the trigger in the database and schedule it
+    const result = await ctx.runMutation(internal.triggers.createTrigger, {
+      userId: ctx.userId,
+      triggerMessage: args.triggerMessage,
+      runAt: args.runAt,
+      phoneNumber: user.phoneNumber,
+      threadId: ctx.threadId, // Pass the current thread ID if available
+      metadata: {
+        type: args.triggerType,
+        context: args.additionalContext,
+      },
+    });
+
+    console.log(
+      `Created trigger ${result.triggerId} for user ${ctx.userId} to run at ${new Date(
+        args.runAt
+      ).toISOString()}`
+    );
+
+    return {
+      success: true,
+      triggerId: result.triggerId,
+      scheduledTime: new Date(args.runAt).toISOString(),
+      message: `Reminder scheduled for ${new Date(args.runAt).toLocaleString()}`,
+    };
+  },
+});
+
+export const waitFunctionTool = createTool({
+  description: "Use this tool if you don't want to do any action right now",
+  args: z.object({}),
+  handler: async (ctx, args, _options) => {
     return {
       success: true,
     };

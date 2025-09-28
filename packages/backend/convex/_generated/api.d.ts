@@ -17,7 +17,9 @@ import type * as otp_twilioSDK from "../otp/twilioSDK.js";
 import type * as playground from "../playground.js";
 import type * as prompts from "../prompts.js";
 import type * as test_loopmessage from "../test_loopmessage.js";
+import type * as test_triggers from "../test_triggers.js";
 import type * as tools from "../tools.js";
+import type * as triggers from "../triggers.js";
 import type * as twilio from "../twilio.js";
 import type * as users from "../users.js";
 
@@ -45,7 +47,9 @@ declare const fullApi: ApiFromModules<{
   playground: typeof playground;
   prompts: typeof prompts;
   test_loopmessage: typeof test_loopmessage;
+  test_triggers: typeof test_triggers;
   tools: typeof tools;
+  triggers: typeof triggers;
   twilio: typeof twilio;
   users: typeof users;
 }>;

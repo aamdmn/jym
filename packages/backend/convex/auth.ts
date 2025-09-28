@@ -26,6 +26,12 @@ export const createAuth = (
     logger: {
       disabled: optionsOnly,
     },
+    socialProviders: {
+      google: {
+        clientId: process.env.GOOGLE_CLIENT_ID as string,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      },
+    },
     baseURL: siteUrl,
     database: authComponent.adapter(ctx),
     plugins: [
@@ -42,15 +48,7 @@ export const createAuth = (
             );
           }
         },
-        signUpOnVerification: {
-          getTempEmail: (phoneNumberParam) => {
-            return `${phoneNumberParam}@jym.coach`;
-          },
-          //optionally, you can also pass `getTempName` function to generate a temporary name for the user
-          getTempName: (phoneNumberParam) => {
-            return phoneNumberParam; //by default, it will use the phone number as the name
-          },
-        },
+        // Removed signUpOnVerification since users must sign up with Google first
       }),
 
       // The Convex plugin is required for Convex compatibility
