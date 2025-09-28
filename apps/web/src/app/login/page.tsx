@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import OTPInputComponent from "@/components/otp-input";
 import PhoneInputComponent from "@/components/phone-input";
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const router = useRouter();
   const sendOtp = async (phoneNumberValue: string) => {
     if (!phoneNumberValue) {
       setError("Please enter a valid phone number");
@@ -78,7 +80,8 @@ export default function LoginPage() {
         setError(handleVerificationError(verifyError));
       } else {
         // Successful verification - user should now be signed up and logged in
-        window.location.href = "/";
+        // Redirect to onboarding page - it will handle checking if onboarding is complete
+        router.push("/onboarding");
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";

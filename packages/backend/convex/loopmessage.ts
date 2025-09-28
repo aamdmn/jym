@@ -49,39 +49,66 @@ export const processIncomingMessage = internalMutation({
     );
     console.log(`Message ID: ${messageId}, Webhook ID: ${webhookId}`);
 
-    // Find or create user profile for LoopMessage user
+    // Check if user exists in betterAuth using phone number
+    const user = await ctx.runQuery(components.betterAuth.lib.findOne, {
+      model: "user",
+      where: [{ field: "phoneNumber", value: senderPhone }],
+    });
+
+    console.log("Found user:", user);
+
+    if (!user?._id) {
+      console.log(
+        `User with phone ${senderPhone} not found in betterAuth or missing ID`
+      );
+
+      // Send login message for unauthenticated users
+      await ctx.scheduler.runAfter(0, internal.loopmessage.sendMessage, {
+        phoneNumber: senderPhone,
+        message:
+          "Hello human! Before we start please login\n\nhttps://jym.coach/login",
+        originalMessageId: messageId,
+        originalWebhookId: webhookId,
+      });
+
+      return {
+        shouldRespond: true,
+        typing: 2, // Brief typing indicator
+        read: true,
+      };
+    }
+
+    // Find or create userProfile for this betterAuth user
     let userProfile = await ctx.db
       .query("userProfiles")
       .withIndex("by_user_id")
-      .filter((q) => q.eq(q.field("userId"), senderPhone)) // Use phone as user ID for LoopMessage users
+      .filter((q) => q.eq(q.field("userId"), user._id))
       .first();
 
     if (!userProfile) {
-      console.log(`Creating new LoopMessage user profile for ${senderPhone}`);
+      console.log(`Creating new userProfile for betterAuth user ${user._id}`);
 
-      // Create new user profile for LoopMessage
+      // Create new user profile
       const profileId = await ctx.db.insert("userProfiles", {
-        userId: senderPhone, // Use phone number as simple user ID
+        userId: user._id,
         platform: "loopmessage",
         onboardingComplete: false,
         fitnessLevel: "",
         goals: "",
         equipment: "",
         injuries: "",
+        mesuringSystem: "metric", // Default to metric
       });
       userProfile = await ctx.db.get(profileId);
     }
 
-    if (!userProfile) {
-      console.error("Failed to create or retrieve user profile");
-      return {
-        shouldRespond: false,
-      };
-    }
+    console.log(
+      `Found authenticated user: ${user._id} for phone ${senderPhone}, profile: ${userProfile?._id}`
+    );
 
-    // Schedule response generation
+    // Schedule response generation with the authenticated user ID
     await ctx.scheduler.runAfter(0, internal.loopmessage.generateResponse, {
-      userId: senderPhone, // Use phone number as simple user ID
+      userId: user._id, // Use the actual betterAuth user ID
       phoneNumber: senderPhone,
       messageText,
       messageId,
@@ -102,7 +129,7 @@ export const processIncomingMessage = internalMutation({
  */
 export const generateResponse = internalAction({
   args: {
-    userId: v.string(), // Phone number as simple user ID
+    userId: v.string(), // betterAuth user ID
     phoneNumber: v.string(),
     messageText: v.string(),
     messageId: v.string(),
@@ -113,8 +140,8 @@ export const generateResponse = internalAction({
     const { userId, phoneNumber, messageText, messageId, webhookId } = args;
 
     try {
-      // For LoopMessage users, userId is the phone number
-      const actualUserId = userId; // Keep it simple
+      // userId is now the betterAuth user ID
+      const actualUserId = userId;
 
       // Find existing thread for this user or create a new one
       const existingThreads = await ctx.runQuery(
@@ -145,10 +172,10 @@ export const generateResponse = internalAction({
         userId: actualUserId,
       });
 
-      // Create dynamic agent with user-specific context
+      // Create appropriate agent based on onboarding status
       const agent = userProfile?.onboardingComplete
-        ? createJymAgent(ctx, actualUserId)
-        : createOnboardingAgent(ctx, actualUserId);
+        ? createJymAgent(ctx)
+        : createOnboardingAgent(ctx);
       const agentName = userProfile?.onboardingComplete
         ? "Jym"
         : "Onboarding Jym";
@@ -393,7 +420,7 @@ export const handleWebhookAlertType = internalAction({
  */
 export const getUserConversation = internalAction({
   args: {
-    userId: v.string(), // Phone number as user ID for LoopMessage users
+    userId: v.string(), // betterAuth user ID
     limit: v.optional(v.number()),
   },
   returns: v.array(v.any()),

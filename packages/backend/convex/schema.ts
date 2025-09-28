@@ -13,6 +13,7 @@ export default defineSchema({
     goals: v.string(),
     equipment: v.string(),
     injuries: v.string(),
+    mesuringSystem: v.union(v.literal("metric"), v.literal("imperial")),
     lastWorkoutDate: v.optional(v.string()),
   })
     .index("by_user_id", ["userId"])

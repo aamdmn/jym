@@ -1,4 +1,5 @@
 import { IconBrandTelegram, IconDice2Filled } from "@tabler/icons-react";
+import { PricingTable } from "autumn-js/react";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { AuthTest } from "../components/AuthTest";
@@ -40,6 +41,8 @@ export default function Home() {
             <PreloadedUserWrapper />
           </Suspense>
         </div>
+
+        <PricingTable />
       </main>
     </div>
   );

@@ -3,6 +3,7 @@ import { Geist_Mono, Outfit } from "next/font/google";
 import localFont from "next/font/local";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import "./globals.css";
+import { AutumnWrapper } from "@/components/AutumnProvider";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -60,7 +61,9 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} ${geistMono.variable} ${serif.variable} antialiased`}
       >
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <ConvexClientProvider>
+          <AutumnWrapper>{children}</AutumnWrapper>
+        </ConvexClientProvider>
       </body>
     </html>
   );

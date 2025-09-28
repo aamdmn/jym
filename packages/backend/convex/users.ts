@@ -11,6 +11,9 @@ export const getUserOnboardingInfo = query({
     goals: v.optional(v.string()),
     equipment: v.optional(v.string()),
     injuries: v.optional(v.string()),
+    mesuringSystem: v.optional(
+      v.union(v.literal("metric"), v.literal("imperial"))
+    ),
   }),
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -24,6 +27,7 @@ export const getUserOnboardingInfo = query({
       goals: user?.goals,
       equipment: user?.equipment,
       injuries: user?.injuries,
+      mesuringSystem: user?.mesuringSystem,
     };
 
     return onboardingInfo;
@@ -37,6 +41,9 @@ export const updateOnboarding = mutation({
     goals: v.optional(v.string()),
     equipment: v.optional(v.string()),
     injuries: v.optional(v.string()),
+    mesuringSystem: v.optional(
+      v.union(v.literal("metric"), v.literal("imperial"))
+    ),
   },
   handler: async (ctx, args) => {
     try {
@@ -55,6 +62,7 @@ export const updateOnboarding = mutation({
         goals: string;
         equipment: string;
         injuries: string;
+        mesuringSystem: "metric" | "imperial";
       }> = {};
 
       if (args.fitnessLevel !== undefined) {
@@ -68,6 +76,9 @@ export const updateOnboarding = mutation({
       }
       if (args.injuries !== undefined) {
         updateFields.injuries = args.injuries;
+      }
+      if (args.mesuringSystem !== undefined) {
+        updateFields.mesuringSystem = args.mesuringSystem;
       }
 
       // Only patch if we have fields to update
@@ -107,5 +118,116 @@ export const completeOnboarding = mutation({
     });
 
     return null;
+  },
+});
+
+// New functions for onboarding flow
+export const updateMeasuringSystem = mutation({
+  args: {
+    userId: v.string(),
+    mesuringSystem: v.union(v.literal("metric"), v.literal("imperial")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("userProfiles")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    await ctx.db.patch(user._id, {
+      mesuringSystem: args.mesuringSystem,
+    });
+
+    return null;
+  },
+});
+
+export const createUserProfile = mutation({
+  args: {
+    userId: v.string(),
+    platform: v.string(),
+    mesuringSystem: v.optional(
+      v.union(v.literal("metric"), v.literal("imperial"))
+    ),
+  },
+  returns: v.id("userProfiles"),
+  handler: async (ctx, args) => {
+    // Check if profile already exists
+    const existingProfile = await ctx.db
+      .query("userProfiles")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .first();
+
+    if (existingProfile) {
+      return existingProfile._id;
+    }
+
+    // Create new user profile with default values
+    const profileId = await ctx.db.insert("userProfiles", {
+      userId: args.userId,
+      platform: args.platform,
+      onboardingComplete: false,
+      fitnessLevel: "",
+      goals: "",
+      equipment: "",
+      injuries: "",
+      mesuringSystem: args.mesuringSystem || "metric",
+    });
+
+    return profileId;
+  },
+});
+
+export const getUserProfile = query({
+  args: {
+    userId: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("userProfiles"),
+      userId: v.string(),
+      platform: v.string(),
+      onboardingComplete: v.boolean(),
+      fitnessLevel: v.string(),
+      goals: v.string(),
+      equipment: v.string(),
+      injuries: v.string(),
+      mesuringSystem: v.union(v.literal("metric"), v.literal("imperial")),
+      lastWorkoutDate: v.optional(v.string()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("userProfiles")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .first();
+
+    return profile || null;
+  },
+});
+
+export const checkOnboardingStatus = query({
+  args: {
+    userId: v.string(),
+  },
+  returns: v.object({
+    hasProfile: v.boolean(),
+    onboardingComplete: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("userProfiles")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .first();
+
+    return {
+      hasProfile: Boolean(profile),
+      onboardingComplete: Boolean(profile?.onboardingComplete),
+    };
   },
 });

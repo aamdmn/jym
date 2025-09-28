@@ -10,6 +10,7 @@
 
 import type * as agents from "../agents.js";
 import type * as auth from "../auth.js";
+import type * as autumn from "../autumn.js";
 import type * as http from "../http.js";
 import type * as loopmessage from "../loopmessage.js";
 import type * as otp_twilioSDK from "../otp/twilioSDK.js";
@@ -37,6 +38,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   agents: typeof agents;
   auth: typeof auth;
+  autumn: typeof autumn;
   http: typeof http;
   loopmessage: typeof loopmessage;
   "otp/twilioSDK": typeof otp_twilioSDK;
@@ -8465,4 +8467,5 @@ export declare const components: {
       >;
     };
   };
+  autumn: {};
 };
