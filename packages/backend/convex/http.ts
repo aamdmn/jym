@@ -2,10 +2,13 @@ import { httpRouter } from "convex/server";
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
+import { twilio } from "./twilio";
 
 const http = httpRouter();
 
 authComponent.registerRoutes(http, createAuth);
+
+twilio.registerRoutes(http);
 
 // LoopMessage webhook endpoint for incoming iMessage messages
 http.route({

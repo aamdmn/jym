@@ -3,7 +3,7 @@ import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
 import { phoneNumber } from "better-auth/plugins";
 import { v } from "convex/values";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 
@@ -30,10 +30,17 @@ export const createAuth = (
     database: authComponent.adapter(ctx),
     plugins: [
       phoneNumber({
-        sendOTP: ({ phoneNumber: phoneNumberParam, code }, request) => {
-          console.log("Sending OTP to", phoneNumberParam);
-          console.log("OTP code", code);
-          console.log("Request", request);
+        sendOTP: async ({ phoneNumber: phoneNumberParam, code }, request) => {
+          try {
+            await ctx.runAction(internal.otp.twilioSDK.verify, {
+              phone: phoneNumberParam,
+              code,
+            });
+          } catch (error) {
+            throw new Error(
+              `Failed to send OTP: ${error instanceof Error ? error.message : "Unknown error"}`
+            );
+          }
         },
         signUpOnVerification: {
           getTempEmail: (phoneNumberParam) => {
@@ -62,7 +69,6 @@ export const getCurrentUser = query({
       return await authComponent.getAuthUser(ctx);
     } catch (_error) {
       // Return null if user is not authenticated instead of throwing
-      console.log("No authenticated user found");
       return null;
     }
   },

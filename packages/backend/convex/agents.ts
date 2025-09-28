@@ -15,7 +15,7 @@ import {
 export function createJymAgent(_ctx: ActionCtx, userId: string) {
   return new Agent(components.agent, {
     name: "Jym",
-    languageModel: openai.chat("gpt-4o"),
+    languageModel: openai.chat("gpt-5-chat-latest"),
     textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
     instructions: MAIN_COACH_PROMPT.replace("{{userId}}", userId),
     maxSteps: 3,
@@ -28,7 +28,7 @@ export function createJymAgent(_ctx: ActionCtx, userId: string) {
 export function createOnboardingAgent(_ctx: ActionCtx, userId: string) {
   return new Agent(components.agent, {
     name: "Onboarding Jym",
-    languageModel: openai.chat("gpt-4o"),
+    languageModel: openai.chat("gpt-5-chat-latest"),
     textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
     instructions: ONBOARDING_PROMPT.replace("{{userId}}", userId),
     maxSteps: 3,
@@ -43,7 +43,7 @@ export function createOnboardingAgent(_ctx: ActionCtx, userId: string) {
 // Legacy static agents for backward compatibility (if needed)
 export const jymAgent = new Agent(components.agent, {
   name: "Jym",
-  languageModel: openai.chat("gpt-4o"),
+  languageModel: openai.chat("gpt-5-chat-latest"),
   textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
   instructions: "You are a adaptive fitness coach named Jym",
   maxSteps: 3,
@@ -51,7 +51,7 @@ export const jymAgent = new Agent(components.agent, {
 
 export const onboardingAgent = new Agent(components.agent, {
   name: "Onboarding Jym",
-  languageModel: openai.chat("gpt-4o"),
+  languageModel: openai.chat("gpt-5-chat-latest"),
   textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
   instructions: ONBOARDING_PROMPT.replace("{{userId}}", "+421950571586"), // Default fallback
   maxSteps: 3,
