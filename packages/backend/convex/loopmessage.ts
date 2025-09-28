@@ -1,8 +1,19 @@
 import { createThread, listUIMessages } from "@convex-dev/agent";
 import { v } from "convex/values";
+import { z } from "zod";
 import { api, components, internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
 import { createJymAgent, createOnboardingAgent } from "./agents";
+
+// Zod schemas for validation
+const phoneNumberSchema = z
+  .string()
+  .regex(
+    /^(\+[1-9]\d{7,15}|[1-9]\d{9,14})$/,
+    "Invalid phone number format. Must be a valid phone number."
+  );
+
+const emailSchema = z.email("Invalid email format");
 
 /**
  * Process incoming LoopMessage webhook data
@@ -44,6 +55,40 @@ export const processIncomingMessage = internalMutation({
       };
     }
 
+    // Validate that recipient is a phone number, not an email
+    const isEmail = emailSchema.safeParse(senderPhone).success;
+    const isPhone = phoneNumberSchema.safeParse(senderPhone).success;
+
+    if (isEmail) {
+      console.log(
+        `Received message from email address: ${senderPhone}, sending unsupported message`
+      );
+
+      // Send message explaining email is not supported
+      await ctx.scheduler.runAfter(0, internal.loopmessage.sendMessage, {
+        phoneNumber: senderPhone,
+        message:
+          "oops, we don't support email sending in iMessage (for now). please change it to sending as a phone number to continue our conversation!",
+        originalMessageId: messageId,
+        originalWebhookId: webhookId,
+      });
+
+      return {
+        shouldRespond: true,
+        typing: 1,
+        read: true,
+      };
+    }
+
+    if (!isPhone) {
+      console.error(
+        `Invalid recipient format: ${senderPhone}. Expected phone number format.`
+      );
+      return {
+        shouldRespond: false,
+      };
+    }
+
     console.log(
       `Processing ${messageType} message from ${senderPhone}: ${messageText}`
     );
@@ -66,7 +111,7 @@ export const processIncomingMessage = internalMutation({
       await ctx.scheduler.runAfter(0, internal.loopmessage.sendMessage, {
         phoneNumber: senderPhone,
         message:
-          "Hello human! Before we start please login\n\nhttps://jym.coach/login",
+          "hello human! before we start please login:\n\nhttps://jym.coach/login",
         originalMessageId: messageId,
         originalWebhookId: webhookId,
       });

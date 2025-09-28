@@ -10,6 +10,24 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 type OnboardingStep = "measuring" | "billing";
 
+// Helper function to get progress indicator colors
+function getProgressColor(
+  currentStep: OnboardingStep,
+  targetStep: OnboardingStep
+): string {
+  const stepOrder = ["measuring", "billing"];
+  const currentIndex = stepOrder.indexOf(currentStep);
+  const targetIndex = stepOrder.indexOf(targetStep);
+
+  if (currentIndex === targetIndex) {
+    return "bg-primary";
+  }
+  if (currentIndex > targetIndex) {
+    return "bg-primary/30";
+  }
+  return "bg-primary/30";
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<OnboardingStep>("measuring");
@@ -36,7 +54,7 @@ export default function OnboardingPage() {
   // Redirect if onboarding is already complete
   useEffect(() => {
     if (onboardingStatus?.onboardingComplete) {
-      router.push("/");
+      router.push("/app");
     }
   }, [onboardingStatus, router]);
 
@@ -78,17 +96,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    setIsLoading(true);
-    setError("");
-
-    try {
-      router.push("/");
-    } catch (err) {
-      setError("Failed to complete onboarding. Please try again.");
-      // Uncomment for debugging: console.error("Error completing onboarding:", err);
-    } finally {
-      setIsLoading(false);
-    }
+    router.push("/app");
   };
 
   const handlePaidPlanSelect = async () => {
@@ -103,11 +111,14 @@ export default function OnboardingPage() {
       // Checkout with Autumn - this will handle the payment flow
       const { error: checkoutError } = await checkout({
         productId: "pay_as_you_go", // Adjust this to match your Autumn product ID
-        successUrl: "http://localhost:3000",
+        successUrl: `${window.location.origin}/app`,
       });
 
       if (checkoutError) {
         setError("Failed to process payment. Please try again.");
+      } else {
+        // Go to complete step if checkout was successful
+        router.push("/app");
       }
     } catch {
       setError("Failed to process payment. Please try again.");
@@ -126,15 +137,15 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="w-full max-w-md space-y-8">
+    <div className="flex h-screen flex-col items-center justify-center">
+      <div className="min-h-[40%] w-full max-w-md space-y-8">
         {/* Progress indicator */}
         <div className="flex items-center justify-center space-x-2">
           <div
-            className={`h-2 w-8 rounded-full ${step === "measuring" ? "bg-blue-600" : "bg-blue-300"}`}
+            className={`h-2 w-8 rounded-full ${getProgressColor(step, "measuring")}`}
           />
           <div
-            className={`h-2 w-8 rounded-full ${step === "billing" ? "bg-blue-600" : "bg-gray-300"}`}
+            className={`h-2 w-8 rounded-full ${getProgressColor(step, "billing")}`}
           />
         </div>
 
@@ -146,9 +157,9 @@ export default function OnboardingPage() {
 
         {/* Step 1: Measuring System */}
         {step === "measuring" && (
-          <div className="space-y-6 rounded-lg bg-white p-8 shadow-lg">
-            <div className="text-center">
-              <h1 className="font-bold text-2xl text-gray-900">
+          <div className="min-h-full space-y-6 rounded-2xl border border-dashed bg-white p-8">
+            <div className="mb-20 text-center">
+              <h1 className="font-medium font-serif text-2xl text-gray-900">
                 Welcome to Jym!
               </h1>
               <p className="mt-2 text-gray-600">
@@ -157,40 +168,43 @@ export default function OnboardingPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="block font-medium text-gray-700">
+              <div className="block font-serif text-gray-700">
                 Choose your preferred measuring system:
               </div>
 
               <ToggleGroup
                 className="grid w-full grid-cols-2 gap-0"
                 onValueChange={(measuringValue: "metric" | "imperial") => {
-                  if (measuringValue) {
-                    setMeasuringSystem(measuringValue);
-                  }
+                  setMeasuringSystem(measuringValue);
                 }}
                 type="single"
                 value={measuringSystem}
                 variant="outline"
               >
-                <ToggleGroupItem className="text-center" value="metric">
+                <ToggleGroupItem className="h-20 text-center" value="metric">
                   <div className="flex flex-col items-center space-y-1">
-                    <span className="font-semibold">Metric</span>
-                    <span className="text-gray-500 text-xs">kg, cm</span>
+                    <span className="font-medium">Metric</span>
+                    <span className="font-serif text-gray-500 text-sm">
+                      kg, cm
+                    </span>
                   </div>
                 </ToggleGroupItem>
-                <ToggleGroupItem className="text-center" value="imperial">
+                <ToggleGroupItem className="h-20 text-center" value="imperial">
                   <div className="flex flex-col items-center space-y-1">
-                    <span className="font-semibold">Imperial</span>
-                    <span className="text-gray-500 text-xs">lbs, ft/in</span>
+                    <span className="font-medium">Imperial</span>
+                    <span className="font-serif text-gray-500 text-sm">
+                      lbs, ft/in
+                    </span>
                   </div>
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
 
             <Button
-              className="w-full bg-blue-600 text-white hover:bg-blue-700"
+              className="w-full"
               disabled={isLoading}
               onClick={handleMeasuringSystemNext}
+              size="lg"
             >
               {isLoading ? "Saving..." : "Continue"}
             </Button>
@@ -199,9 +213,9 @@ export default function OnboardingPage() {
 
         {/* Step 2: Billing Plans */}
         {step === "billing" && (
-          <div className="space-y-6 rounded-lg bg-white p-8 shadow-lg">
+          <div className="space-y-6 rounded-2xl border border-dashed bg-white p-8">
             <div className="text-center">
-              <h1 className="font-bold text-2xl text-gray-900">
+              <h1 className="font-medium font-serif text-2xl text-gray-900">
                 Choose Your Plan
               </h1>
               <p className="mt-2 text-gray-600">
@@ -213,7 +227,7 @@ export default function OnboardingPage() {
               {/* Free Plan */}
               <div className="rounded-lg border border-gray-200 p-4">
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Free Plan</h3>
+                  <h3 className="font-medium font-serif text-lg">Free Plan</h3>
                   <p className="text-gray-600 text-sm">
                     Get started with basic features at no cost.
                   </p>
@@ -234,10 +248,12 @@ export default function OnboardingPage() {
               </div>
 
               {/* Pay-as-you-go Plan */}
-              <div className="rounded-lg border-2 border-blue-500 bg-blue-50 p-4">
+              <div className="rounded-lg border-2 border-blue-400 border-dashed bg-blue-50 p-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-lg">Pay-as-you-go</h3>
+                    <h3 className="font-medium font-serif text-lg">
+                      Pay-as-you-go
+                    </h3>
                     <span className="rounded-full bg-blue-600 px-2 py-1 font-semibold text-white text-xs">
                       RECOMMENDED
                     </span>
@@ -253,9 +269,10 @@ export default function OnboardingPage() {
                   </ul>
                 </div>
                 <Button
-                  className="mt-4 w-full bg-blue-600 text-white hover:bg-blue-700"
+                  className="mt-4 w-full"
                   disabled={isLoading}
                   onClick={handlePaidPlanSelect}
+                  size="lg"
                 >
                   {isLoading ? "Processing..." : "Get Started"}
                 </Button>
@@ -264,7 +281,7 @@ export default function OnboardingPage() {
 
             <div className="text-center">
               <button
-                className="text-gray-500 text-sm transition-colors hover:text-gray-700"
+                className="cursor-pointer text-gray-500 text-sm transition-colors hover:text-gray-700"
                 disabled={isLoading}
                 onClick={() => setStep("measuring")}
                 type="button"

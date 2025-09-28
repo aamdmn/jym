@@ -6,13 +6,12 @@ import { useId } from "react";
 import * as RPNInput from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-interface PhoneInputComponentProps {
+type PhoneInputComponentProps = {
   phoneNumber: string;
   onChange: React.Dispatch<React.SetStateAction<string>>;
-}
+};
 
 export default function PhoneInputComponent({
   phoneNumber,
@@ -22,16 +21,16 @@ export default function PhoneInputComponent({
 
   return (
     <div className="*:not-first:mt-2" dir="ltr">
-      <Label htmlFor={id}>Phone Number</Label>
+      {/* <Label htmlFor={id}>Phone Number</Label> */}
       <RPNInput.default
-        className="flex rounded-md shadow-xs"
+        className="flex rounded-2xl shadow-xs"
         countrySelectComponent={CountrySelect}
         flagComponent={FlagComponent}
         id={id}
         inputComponent={PhoneInput}
         international
         onChange={(newValue) => onChange(newValue ?? "")}
-        placeholder="Enter phone number"
+        placeholder="(000) 000-0000"
         value={phoneNumber}
       />
     </div>
@@ -42,7 +41,7 @@ const PhoneInput = ({ className, ...props }: React.ComponentProps<"input">) => {
   return (
     <Input
       className={cn(
-        "-ms-px rounded-s-none py-5! text-lg shadow-none focus-visible:z-10",
+        "-ms-px rounded-s-none! py-7! font-normal font-sans text-xl shadow-none focus-visible:z-10",
         className
       )}
       data-slot="phone-input"
@@ -71,7 +70,7 @@ const CountrySelect = ({
   };
 
   return (
-    <div className="relative inline-flex items-center self-stretch rounded-s-md border border-input bg-background py-2 ps-3 pe-2 text-muted-foreground outline-none transition-[color,box-shadow] focus-within:z-10 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 hover:bg-accent hover:text-foreground has-disabled:pointer-events-none has-aria-invalid:border-destructive/60 has-disabled:opacity-50 has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40">
+    <div className="relative inline-flex items-center self-stretch rounded-2xl rounded-e-none border border-input bg-background py-2 ps-3 pe-2 text-muted-foreground outline-none transition-[color,box-shadow] focus-within:z-10 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 hover:bg-accent hover:text-foreground has-disabled:pointer-events-none has-aria-invalid:border-destructive/60 has-disabled:opacity-50 has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40">
       <div aria-hidden="true" className="inline-flex items-center gap-1">
         <FlagComponent aria-hidden="true" country={value} countryName={value} />
         <span className="text-muted-foreground/80">

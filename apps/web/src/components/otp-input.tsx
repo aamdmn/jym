@@ -18,7 +18,7 @@ export default function OTPInputComponent({
   value,
   onChange,
   maxLength = 6,
-  label = "Verification Code",
+  label,
   disabled = false,
   className,
 }: OTPInputComponentProps) {
@@ -26,7 +26,7 @@ export default function OTPInputComponent({
 
   return (
     <div className={cn("*:not-first:mt-2", className)}>
-      <Label htmlFor={id}>{label}</Label>
+      {label && <Label htmlFor={id}>{label}</Label>}
       <OTPInput
         containerClassName="flex items-center gap-3 has-disabled:opacity-50"
         disabled={disabled}

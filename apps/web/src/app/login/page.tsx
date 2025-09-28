@@ -108,9 +108,9 @@ export default function LoginPage() {
   return (
     <div className="flex h-screen flex-col items-center justify-center">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center">
-          <h1 className="font-bold text-2xl">
-            {step === "phone" ? "Sign In" : "Verify Your Phone"}
+        <div className="text-start">
+          <h1 className="font-medium font-serif text-2xl">
+            {step === "phone" ? "Enter your phone number" : "Verify Your Phone"}
           </h1>
           {step === "otp" && (
             <p className="mt-2 text-muted-foreground text-sm">
@@ -122,15 +122,6 @@ export default function LoginPage() {
         {error && (
           <div className="rounded-md bg-destructive/10 p-3 text-center">
             <p className="text-destructive text-sm">{error}</p>
-          </div>
-        )}
-
-        {step === "otp" && !error && (
-          <div className="rounded-md bg-blue/10 p-3 text-center">
-            <p className="text-blue text-sm">
-              Enter the 6-digit code sent to your phone. This will create your
-              account automatically.
-            </p>
           </div>
         )}
 
@@ -146,7 +137,11 @@ export default function LoginPage() {
               onChange={setPhoneNumber}
               phoneNumber={phoneNumber}
             />
-            <Button disabled={isLoading || !phoneNumber} type="submit">
+            <Button
+              disabled={isLoading || !phoneNumber}
+              size="lg"
+              type="submit"
+            >
               {isLoading ? "Sending..." : "Send Verification Code"}
             </Button>
           </form>
@@ -162,7 +157,6 @@ export default function LoginPage() {
               }}
             >
               <OTPInputComponent
-                label="Enter verification code"
                 maxLength={6}
                 onChange={setOtpCode}
                 value={otpCode}
