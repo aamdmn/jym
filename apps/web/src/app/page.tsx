@@ -8,7 +8,6 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import Link from "next/link";
-
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
@@ -25,8 +24,8 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen justify-center font-sans">
-      <main className="flex w-full max-w-4xl flex-col items-start space-y-8 p-4">
+    <div className="relative flex min-h-screen justify-center font-sans">
+      <main className="relative z-10 flex w-full max-w-4xl flex-col items-start space-y-8 p-4">
         <div className="mt-10 flex w-full items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <IconDice2Filled className="size-7 stroke-[1.3px]" />

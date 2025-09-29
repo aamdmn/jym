@@ -50,14 +50,17 @@ function Slot(props: SlotProps) {
   return (
     <div
       className={cn(
-        "flex size-12 items-center justify-center rounded-md border border-input bg-background font-medium text-foreground text-lg shadow-xs transition-[color,box-shadow]",
-        { "z-10 border-ring ring-[3px] ring-ring/50": props.isActive }
+        "relative flex size-16 items-center justify-center rounded-xl border-none bg-background/30 font-medium text-2xl text-background shadow-sm backdrop-blur-sm transition-[color,box-shadow,background-color]",
+        {
+          "z-10 border-accent bg-background/20 ring-2 ring-accent/50":
+            props.isActive,
+        }
       )}
     >
       {props.char !== null && <div>{props.char}</div>}
       {props.hasFakeCaret && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />
+          <div className="h-4 w-px animate-caret-blink bg-background duration-1000" />
         </div>
       )}
     </div>

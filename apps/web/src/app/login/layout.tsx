@@ -12,11 +12,11 @@ export default async function LoginLayout({
 
   const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
 
-  if (user && !user.phoneNumber) {
-    redirect("/verify-phone");
-  } else if (user) {
-    redirect("/app");
-  }
+  // if (user && !user.phoneNumber) {
+  //   redirect("/verify-phone");
+  // } else if (user) {
+  //   redirect("/app");
+  // }
 
   return <div>{children}</div>;
 }

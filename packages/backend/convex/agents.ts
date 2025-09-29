@@ -7,7 +7,9 @@ import { MAIN_COACH_PROMPT, ONBOARDING_PROMPT } from "./prompts";
 import {
   checkOnboardingTool,
   completeOnboardingTool,
+  completeWorkoutTool,
   createTriggerTool,
+  editWorkoutTool,
   getCurrentExerciseTool,
   startWorkoutTool,
   updateOnboardingTool,
@@ -69,6 +71,8 @@ export function createJymAgent(_ctx: ActionCtx) {
       startWorkout: startWorkoutTool,
       updateWorkout: updateWorkoutTool,
       getCurrentExercise: getCurrentExerciseTool,
+      editWorkout: editWorkoutTool,
+      completeWorkout: completeWorkoutTool,
     },
     contextHandler: (_, args) => {
       const context = createTimeAwareContextHandler(args);
@@ -124,7 +128,7 @@ export const jymAgent = new Agent(components.agent, {
   languageModel: openai.chat("gpt-4.1"),
   textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
   instructions: MAIN_COACH_PROMPT,
-  maxSteps: 5, // Increased to allow for trigger creation
+  maxSteps: 5,
   tools: {
     createTrigger: createTriggerTool,
     wait: waitFunctionTool,

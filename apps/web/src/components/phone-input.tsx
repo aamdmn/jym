@@ -41,7 +41,7 @@ const PhoneInput = ({ className, ...props }: React.ComponentProps<"input">) => {
   return (
     <Input
       className={cn(
-        "-ms-px rounded-s-none! py-7! font-mono font-normal text-xl shadow-none focus-visible:z-10",
+        "-ms-px rounded-s-none! border-none bg-background/30! py-8! font-normal font-sans text-primary-foreground text-xl shadow-none ring-0! backdrop-blur-md placeholder:text-muted",
         className
       )}
       data-slot="phone-input"
@@ -70,10 +70,10 @@ const CountrySelect = ({
   };
 
   return (
-    <div className="relative inline-flex items-center self-stretch rounded-2xl rounded-e-none border border-input bg-background py-2 ps-3 pe-2 text-muted-foreground outline-none transition-[color,box-shadow] focus-within:z-10 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 hover:bg-accent hover:text-foreground has-disabled:pointer-events-none has-aria-invalid:border-destructive/60 has-disabled:opacity-50 has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40">
+    <div className="relative inline-flex items-center self-stretch rounded-2xl rounded-e-none bg-background/30 bg-blur-sm py-2 ps-5 pe-4 text-muted-foreground outline-none transition-[color,box-shadow] focus-within:z-10 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 hover:text-foreground has-disabled:pointer-events-none has-aria-invalid:border-destructive/60 has-disabled:opacity-50 has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40">
       <div aria-hidden="true" className="inline-flex items-center gap-1">
         <FlagComponent aria-hidden="true" country={value} countryName={value} />
-        <span className="text-muted-foreground/80">
+        <span className="text-muted/80">
           <ChevronDownIcon aria-hidden="true" size={20} />
         </span>
       </div>
@@ -105,7 +105,7 @@ const FlagComponent = ({ country, countryName }: RPNInput.FlagProps) => {
   const Flag = flags[country];
 
   return (
-    <span className="w-6 overflow-hidden rounded-sm">
+    <span className="w-6 overflow-hidden rounded-sm text-muted">
       {Flag ? (
         <Flag title={countryName} />
       ) : (

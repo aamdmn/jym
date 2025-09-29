@@ -19,27 +19,27 @@ const rockGrotesk = localFont({
   variable: "--font-rock-grotesk",
   src: [
     {
-      path: "../fonts/Fontspring-DEMO-rocgrotesk-light.otf",
+      path: "../fonts/Kostic - Roc Grotesk Light.otf",
       weight: "300",
       style: "normal",
     },
     {
-      path: "../fonts/Fontspring-DEMO-rocgrotesk-regular.otf",
+      path: "../fonts/Kostic - Roc Grotesk Regular.otf",
       weight: "400",
       style: "normal",
     },
     {
-      path: "../fonts/Fontspring-DEMO-rocgrotesk-medium.otf",
+      path: "../fonts/Kostic - Roc Grotesk Medium.otf",
       weight: "500",
       style: "normal",
     },
     {
-      path: "../fonts/Fontspring-DEMO-rocgrotesk-bold.otf",
+      path: "../fonts/Kostic - Roc Grotesk Bold.otf",
       weight: "600",
       style: "normal",
     },
     {
-      path: "../fonts/Fontspring-DEMO-rocgrotesk-extrabold.otf",
+      path: "../fonts/Kostic - Roc Grotesk ExtraBold.otf",
       weight: "700",
       style: "normal",
     },

@@ -1,10 +1,13 @@
 "use client";
 
+import { IconChevronLeft } from "@tabler/icons-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import OTPInputComponent from "@/components/otp-input";
 import PhoneInputComponent from "@/components/phone-input";
 import { Button } from "@/components/ui/button";
+import runner from "../../../public/runner.png";
 import { authClient } from "../../lib/auth-client";
 
 type FormStep = "phone" | "otp";
@@ -135,25 +138,36 @@ export default function VerifyPhonePage() {
   }
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center">
-      <div className="w-full max-w-md space-y-6">
+    <div className="relative flex h-screen flex-col items-center justify-center">
+      {/* Background Image */}
+      <Image
+        alt="runner"
+        className="-z-20 absolute inset-0 object-cover"
+        fill
+        src={runner}
+      />
+
+      {/* Dark Overlay */}
+      <div className="-z-10 absolute inset-0 bg-black/40 backdrop-blur-sm" />
+
+      <div className="relative z-10 w-full max-w-md space-y-10">
+        {step === "otp" && (
+          <button
+            className="flex items-center gap-2 text-background/80 transition-colors hover:text-background"
+            onClick={handleBackToPhone}
+            type="button"
+          >
+            <IconChevronLeft className="size-4" />
+            Back
+          </button>
+        )}
+
         <div className="text-start">
-          <h1 className="font-medium font-serif text-2xl">
+          <h1 className="font-medium font-serif text-2xl text-background">
             {step === "phone"
-              ? "Connect your phone number"
-              : "Verify Your Phone"}
+              ? "What's your phone number?"
+              : "Verify your phone number"}
           </h1>
-          {step === "phone" && user && (
-            <p className="mt-2 text-muted-foreground text-sm">
-              Hi {user.name}! Now let's connect your phone number to complete
-              your setup.
-            </p>
-          )}
-          {step === "otp" && (
-            <p className="mt-2 text-muted-foreground text-sm">
-              We've sent a verification code to {phoneNumber}
-            </p>
-          )}
         </div>
 
         {error && (
@@ -165,7 +179,7 @@ export default function VerifyPhonePage() {
         {step === "phone" && (
           <div className="space-y-4">
             <form
-              className="flex flex-col gap-4"
+              className="flex flex-col gap-8"
               onSubmit={(e) => {
                 e.preventDefault();
                 sendOtp(phoneNumber);
@@ -176,6 +190,7 @@ export default function VerifyPhonePage() {
                 phoneNumber={phoneNumber}
               />
               <Button
+                className="h-14"
                 disabled={isLoading || !phoneNumber}
                 size="lg"
                 type="submit"
@@ -189,7 +204,7 @@ export default function VerifyPhonePage() {
         {step === "otp" && (
           <div className="space-y-4">
             <form
-              className="flex flex-col gap-4"
+              className="flex flex-col gap-8"
               onSubmit={(e) => {
                 e.preventDefault();
                 verifyOtp();
@@ -201,7 +216,9 @@ export default function VerifyPhonePage() {
                 value={otpCode}
               />
               <Button
+                className="h-14"
                 disabled={isLoading || otpCode.length !== 6}
+                size="lg"
                 type="submit"
               >
                 {isLoading ? "Verifying..." : "Verify Code"}
@@ -210,7 +227,7 @@ export default function VerifyPhonePage() {
 
             <div className="flex flex-col gap-2 text-center text-sm">
               <button
-                className="text-muted-foreground transition-colors hover:text-foreground"
+                className="text-background/70 transition-colors hover:text-background"
                 disabled={isLoading}
                 onClick={handleResendOtp}
                 type="button"
@@ -218,7 +235,7 @@ export default function VerifyPhonePage() {
                 {isLoading ? "Sending..." : "Didn't receive the code? Resend"}
               </button>
               <button
-                className="text-muted-foreground transition-colors hover:text-foreground"
+                className="text-background/70 transition-colors hover:text-background"
                 disabled={isLoading}
                 onClick={handleBackToPhone}
                 type="button"

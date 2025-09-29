@@ -49,14 +49,12 @@ export default function OnboardingPage() {
     customer?.id ? { userId: customer?.id } : "skip"
   );
 
-  // Autumn hooks for billing
-
   // Redirect if onboarding is already complete
-  useEffect(() => {
-    if (onboardingStatus?.onboardingComplete) {
-      router.push("/app");
-    }
-  }, [onboardingStatus, router]);
+  // useEffect(() => {
+  //   if (onboardingStatus?.onboardingComplete) {
+  //     router.push("/app");
+  //   }
+  // }, [onboardingStatus, router]);
 
   const handleMeasuringSystemNext = async () => {
     if (!customer?.id) {

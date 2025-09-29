@@ -275,7 +275,7 @@ async function generateSimpleWorkout({
 
 export const updateWorkoutTool = createTool({
   description:
-    "Mark the current exercise as complete and advance to the next exercise. Use this when the user indicates they've finished an exercise.",
+    "Mark the current exercise as complete and advance to the next exercise. Use this when the user indicates they've finished an exercise. ALWAYS call this for EVERY completed exercise, including the last one.",
   args: z.object({
     slug: z
       .string()
@@ -321,8 +321,9 @@ export const updateWorkoutTool = createTool({
     if (result.isWorkoutComplete) {
       return {
         complete: true,
-        message: "Workout complete! Great job!",
+        message: "All exercises completed! Workout is done!",
         progress: result.progress,
+        isLastExercise: true,
       };
     }
 
@@ -330,6 +331,33 @@ export const updateWorkoutTool = createTool({
       nextExercise: result.nextExercise,
       progress: result.progress,
       complete: false,
+      isLastExercise: false,
+    };
+  },
+});
+
+export const completeWorkoutTool = createTool({
+  description:
+    "Explicitly mark the entire workout as complete. Use this as a safety check if the workout should be done but isn't marked complete, or if the user wants to end the workout early.",
+  args: z.object({}),
+  handler: async (ctx, _args) => {
+    if (!ctx.threadId) {
+      return { error: "No thread context available" };
+    }
+
+    const result = await ctx.runMutation(api.workouts.completeWorkout, {
+      threadId: ctx.threadId,
+    });
+
+    if (!result.success) {
+      return {
+        error: result.message,
+      };
+    }
+
+    return {
+      success: true,
+      message: result.message,
     };
   },
 });
@@ -361,4 +389,83 @@ export const getCurrentExerciseTool = createTool({
   },
 });
 
-// Edit workout tool
+export const editWorkoutTool = createTool({
+  description:
+    "Edit the current workout - modify exercise parameters (sets/reps/weight), replace exercises, add new exercises, or remove exercises. Use this when the user requests changes or adjustments to their workout.",
+  args: z.object({
+    action: z
+      .enum([
+        "modify_exercise",
+        "replace_exercise",
+        "remove_exercise",
+        "add_exercise",
+      ])
+      .describe(
+        "The type of edit to perform: modify_exercise (change sets/reps/weight), replace_exercise (swap one exercise for another), remove_exercise (delete an exercise), add_exercise (insert a new exercise)"
+      ),
+    exerciseSlug: z
+      .string()
+      .optional()
+      .describe(
+        "The slug of the exercise to modify/replace/remove (required for all actions except add_exercise)"
+      ),
+    modifications: z
+      .object({
+        sets: z.number().optional(),
+        reps: z.number().optional(),
+        weight: z.number().optional(),
+        duration: z.number().optional(),
+        unit: z.string().optional(),
+      })
+      .optional()
+      .describe(
+        "For modify_exercise: the parameters to update (only provide the ones that should change)"
+      ),
+    newExercise: z
+      .object({
+        name: z.string(),
+        slug: z.string(),
+        sets: z.number().optional(),
+        reps: z.number().optional(),
+        weight: z.number().optional(),
+        duration: z.number().optional(),
+        unit: z.string().optional(),
+      })
+      .optional()
+      .describe(
+        "For replace_exercise or add_exercise: the new exercise details"
+      ),
+    insertPosition: z
+      .number()
+      .optional()
+      .describe(
+        "For add_exercise: the index position where to insert the exercise (0 = beginning, undefined = end)"
+      ),
+  }),
+  handler: async (ctx, args) => {
+    if (!ctx.threadId) {
+      return { error: "No thread context available" };
+    }
+
+    const result = await ctx.runMutation(api.workouts.editWorkout, {
+      threadId: ctx.threadId,
+      action: args.action,
+      exerciseSlug: args.exerciseSlug,
+      modifications: args.modifications,
+      newExercise: args.newExercise,
+      insertPosition: args.insertPosition,
+    });
+
+    if (!result.success) {
+      return {
+        error: result.message,
+      };
+    }
+
+    return {
+      success: true,
+      message: result.message,
+      updatedExercises: result.updatedExercises,
+    };
+  },
+});
