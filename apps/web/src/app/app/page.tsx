@@ -5,7 +5,9 @@ import { useQuery } from "convex/react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import WorkoutCard from "@/components/workout-card";
+import WorkoutStats from "@/components/workout-stats";
 import { authClient } from "@/lib/auth-client";
+import { createWhatsAppDeepLink } from "@/lib/utils";
 
 export default function Page() {
   const { data: session } = authClient.useSession();
@@ -25,16 +27,6 @@ export default function Page() {
     api.workouts.getLastWorkoutByUserId,
     userId && !activeWorkout ? { userId } : "skip"
   );
-
-  // Helper function to create iMessage deep link
-  function createiMessageDeepLink(message?: string): void {
-    const recipient = "sandbox.loopmessage.com@imsg.im";
-    const defaultMessage = message || "Let's go!";
-    const encodedMessage = encodeURIComponent(defaultMessage);
-    const deepLink = `imessage://compose?recipient=${recipient}&body=${encodedMessage}`;
-
-    window.location.href = deepLink;
-  }
 
   // Loading state
   if (userProfile === undefined || activeWorkout === undefined) {
@@ -65,7 +57,9 @@ export default function Page() {
         <Button
           className="w-fit"
           onClick={() => {
-            createiMessageDeepLink("I want to get started with Jym!");
+            createWhatsAppDeepLink({
+              message: "I want to get started with Jym!",
+            });
           }}
           size="lg"
         >
@@ -89,10 +83,11 @@ export default function Page() {
             Just text Jym to begin your first workout
           </p>
         </div>
+        {userId && <WorkoutStats userId={userId} />}
         <Button
           className="w-fit"
           onClick={() => {
-            createiMessageDeepLink("Let's start a workout!");
+            createWhatsAppDeepLink({ message: "Let's start a workout!" });
           }}
           size="lg"
         >
@@ -127,6 +122,7 @@ export default function Page() {
             })}
           </p>
         </div>
+        {userId && <WorkoutStats userId={userId} />}
         <WorkoutCard
           currentExerciseIndex={activeWorkout.currentExerciseIndex}
           exercises={activeWorkout.exercises}
@@ -135,7 +131,7 @@ export default function Page() {
         <Button
           className="w-fit"
           onClick={() => {
-            createiMessageDeepLink("Continue workout");
+            createWhatsAppDeepLink({ message: "Continue workout" });
           }}
           size="lg"
         >
@@ -162,11 +158,12 @@ export default function Page() {
             })}
           </p>
         </div>
+        {userId && <WorkoutStats userId={userId} />}
         <WorkoutCard exercises={lastWorkout.exercises} isActive={false} />
         <Button
           className="w-fit"
           onClick={() => {
-            createiMessageDeepLink("Let's start a new workout!");
+            createWhatsAppDeepLink({ message: "Let's start a new workout!" });
           }}
           size="lg"
         >

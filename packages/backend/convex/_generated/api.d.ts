@@ -14,14 +14,17 @@ import type * as autumn from "../autumn.js";
 import type * as http from "../http.js";
 import type * as loopmessage from "../loopmessage.js";
 import type * as otp_twilioSDK from "../otp/twilioSDK.js";
+import type * as otpRateLimit from "../otpRateLimit.js";
 import type * as playground from "../playground.js";
 import type * as prompts from "../prompts.js";
 import type * as test_loopmessage from "../test_loopmessage.js";
 import type * as test_triggers from "../test_triggers.js";
+import type * as test_whatsapp from "../test_whatsapp.js";
 import type * as tools from "../tools.js";
 import type * as triggers from "../triggers.js";
 import type * as twilio from "../twilio.js";
 import type * as users from "../users.js";
+import type * as whatsapp from "../whatsapp.js";
 import type * as workouts from "../workouts.js";
 
 import type {
@@ -45,14 +48,17 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   loopmessage: typeof loopmessage;
   "otp/twilioSDK": typeof otp_twilioSDK;
+  otpRateLimit: typeof otpRateLimit;
   playground: typeof playground;
   prompts: typeof prompts;
   test_loopmessage: typeof test_loopmessage;
   test_triggers: typeof test_triggers;
+  test_whatsapp: typeof test_whatsapp;
   tools: typeof tools;
   triggers: typeof triggers;
   twilio: typeof twilio;
   users: typeof users;
+  whatsapp: typeof whatsapp;
   workouts: typeof workouts;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

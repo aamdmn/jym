@@ -73,4 +73,17 @@ export default defineSchema({
     .index("by_thread", ["threadId"])
     .index("by_user_date", ["userId", "date"])
     .index("by_user_active", ["userId", "completed"]), // Index for finding active workouts
+
+  // OTP rate limiting and security
+  otpAttempts: defineTable({
+    phoneNumber: v.string(), // Phone number for rate limiting
+    userId: v.optional(v.string()), // Associated user if authenticated
+    attemptType: v.union(v.literal("send"), v.literal("verify")), // Type of attempt
+    timestamp: v.number(), // When the attempt occurred
+    success: v.boolean(), // Whether the attempt was successful
+    ipAddress: v.optional(v.string()), // Optional IP tracking for additional security
+  })
+    .index("by_phone_and_type", ["phoneNumber", "attemptType"])
+    .index("by_phone_and_timestamp", ["phoneNumber", "timestamp"])
+    .index("by_user_and_type", ["userId", "attemptType"]),
 });

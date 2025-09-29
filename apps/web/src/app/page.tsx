@@ -8,29 +8,19 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import Link from "next/link";
+import Logo from "@/components/icons/logo";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { createWhatsAppDeepLink } from "@/lib/utils";
 
 export default function Home() {
   const { data, isPending } = authClient.useSession();
-
-  function createiMessageDeepLink(): void {
-    const recipient = "sandbox.loopmessage.com@imsg.im";
-    const message = "yo, what's up jym?";
-    const encodedMessage = encodeURIComponent(message);
-    const deepLink = `imessage://compose?recipient=${recipient}&body=${encodedMessage}`;
-
-    window.location.href = deepLink;
-  }
 
   return (
     <div className="relative flex min-h-screen justify-center font-sans">
       <main className="relative z-10 flex w-full max-w-4xl flex-col items-start space-y-8 p-4">
         <div className="mt-10 flex w-full items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <IconDice2Filled className="size-7 stroke-[1.3px]" />
-            <span className="font-light text-2xl uppercase">jym</span>
-          </div>
+          <Logo className="h-9" theme="light" />
           <div>
             <Link href={data ? "/app" : "/login"}>
               {isPending ? (
@@ -60,7 +50,7 @@ export default function Home() {
           <Button
             className="mt-8"
             onClick={() => {
-              createiMessageDeepLink();
+              createWhatsAppDeepLink({ message: "yo, what's up jym?" });
             }}
             size={"lg"}
             variant="default"

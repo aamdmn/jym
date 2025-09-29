@@ -260,6 +260,90 @@ export const getLastWorkoutByUserId = query({
   },
 });
 
+export const getWorkoutStats = query({
+  args: { userId: v.string() },
+  returns: v.object({
+    totalWorkouts: v.number(),
+    completedWorkouts: v.number(),
+    currentStreak: v.number(),
+    lastSevenDays: v.array(
+      v.object({
+        date: v.string(),
+        workouts: v.number(),
+      })
+    ),
+  }),
+  handler: async (ctx, args) => {
+    // Get all workouts for the user
+    const allWorkouts = await ctx.db
+      .query("workouts")
+      .withIndex("by_user_active", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const totalWorkouts = allWorkouts.length;
+    const completedWorkouts = allWorkouts.filter((w) => w.completed).length;
+
+    // Calculate last 7 days
+    const today = new Date();
+    const lastSevenDays: Array<{ date: string; workouts: number }> = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateString = date.toISOString().split("T")[0];
+
+      const workoutsOnDate = allWorkouts.filter(
+        (w) => w.date === dateString
+      ).length;
+
+      lastSevenDays.push({
+        date: dateString,
+        workouts: workoutsOnDate,
+      });
+    }
+
+    // Calculate current streak (consecutive days with workouts)
+    let currentStreak = 0;
+    const sortedDates = Array.from(
+      new Set(allWorkouts.filter((w) => w.completed).map((w) => w.date))
+    ).sort((a, b) => b.localeCompare(a)); // Sort descending
+
+    if (sortedDates.length > 0) {
+      const todayString = today.toISOString().split("T")[0];
+      const yesterdayString = new Date(today.getTime() - 86_400_000)
+        .toISOString()
+        .split("T")[0];
+
+      // Check if there's a workout today or yesterday to start streak
+      if (
+        sortedDates[0] === todayString ||
+        sortedDates[0] === yesterdayString
+      ) {
+        currentStreak = 1;
+        const checkDate = new Date(sortedDates[0]);
+
+        for (let i = 1; i < sortedDates.length; i++) {
+          checkDate.setDate(checkDate.getDate() - 1);
+          const expectedDate = checkDate.toISOString().split("T")[0];
+
+          if (sortedDates[i] === expectedDate) {
+            currentStreak++;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    return {
+      totalWorkouts,
+      completedWorkouts,
+      currentStreak,
+      lastSevenDays,
+    };
+  },
+});
+
 export const completeWorkout = mutation({
   args: {
     threadId: v.string(),

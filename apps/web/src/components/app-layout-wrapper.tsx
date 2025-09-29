@@ -14,7 +14,7 @@ export default function AppLayoutWrapper({
       <div className="mt-14">
         <TabsNavbar />
       </div>
-      <div className="mx-auto mt-8 mb-20 flex min-h-[60%] w-full max-w-xl flex-col rounded-2xl border-2 border-gray-400 border-dashed px-6 py-4">
+      <div className="mx-auto mt-8 mb-20 flex min-h-[60%] w-full max-w-xl flex-col rounded-2xl px-6 py-4">
         <div className="flex w-full justify-between py-3">
           <Logo className="h-8" theme="monochrome" />
           <UserDropdown />

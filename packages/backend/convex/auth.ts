@@ -36,7 +36,7 @@ export const createAuth = (
     database: authComponent.adapter(ctx),
     plugins: [
       phoneNumber({
-        sendOTP: async ({ phoneNumber: phoneNumberParam, code }, request) => {
+        sendOTP: async ({ phoneNumber: phoneNumberParam, code }, _request) => {
           try {
             await ctx.runAction(internal.otp.twilioSDK.verify, {
               phone: phoneNumberParam,

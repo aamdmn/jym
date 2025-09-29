@@ -69,7 +69,7 @@ export default function TabsNavbar() {
 
   return (
     <Tabs className="w-full" onValueChange={handleTabChange} value={activeTab}>
-      <TabsList className="grid w-full grid-cols-4 border-2 border-gray-400 border-dashed bg-background p-1 shadow-lg">
+      <TabsList className="grid w-full grid-cols-4 bg-background p-1 shadow-lg">
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>

@@ -89,7 +89,7 @@ export default function WorkoutCard({
                     key={exercise.slug}
                   >
                     <CheckCircle2
-                      className="size-4 text-primary"
+                      className="size-4 stroke-[1.5] text-primary"
                       strokeWidth={2}
                     />
                     <span className="flex-1 text-foreground text-sm">
@@ -121,12 +121,12 @@ export default function WorkoutCard({
               <div className="mt-0.5 flex-shrink-0">
                 {exercise.completed || isPast ? (
                   <CheckCircle2
-                    className="size-4 text-primary"
+                    className="size-4 stroke-[1.5] text-primary"
                     strokeWidth={2.5}
                   />
                 ) : (
                   <Circle
-                    className={`size-4 ${isCurrent ? "text-primary" : "text-gray-400"}`}
+                    className={`size-4 stroke-[1.5] ${isCurrent ? "text-primary" : "text-gray-400"}`}
                     strokeWidth={2.5}
                   />
                 )}

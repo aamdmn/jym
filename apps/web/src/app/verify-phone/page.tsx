@@ -1,16 +1,21 @@
 "use client";
 
 import { IconChevronLeft } from "@tabler/icons-react";
+import { useMutation, useQuery } from "convex/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import OTPInputComponent from "@/components/otp-input";
 import PhoneInputComponent from "@/components/phone-input";
 import { Button } from "@/components/ui/button";
+import { api } from "../../../../../packages/backend/convex/_generated/api";
 import runner from "../../../public/runner.png";
 import { authClient } from "../../lib/auth-client";
 
 type FormStep = "phone" | "otp";
+
+const RESEND_COOLDOWN_SECONDS = 60;
+const MAX_VERIFICATION_ATTEMPTS = 5;
 
 export default function VerifyPhonePage() {
   const [step, setStep] = useState<FormStep>("phone");
@@ -18,9 +23,29 @@ export default function VerifyPhonePage() {
   const [otpCode, setOtpCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
   const { data: session, isPending } = authClient.useSession();
+  const cooldownTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const router = useRouter();
+
+  // Convex rate limiting hooks
+  const checkRateLimit = useQuery(
+    api.otpRateLimit.checkSendOtpAllowed,
+    phoneNumber ? { phoneNumber } : "skip"
+  );
+  const logSendAttempt = useMutation(api.otpRateLimit.logSendAttempt);
+  const logVerifyAttempt = useMutation(api.otpRateLimit.logVerifyAttempt);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
+      }
+    };
+  }, []);
 
   const user = session?.user;
 
@@ -37,11 +62,47 @@ export default function VerifyPhonePage() {
 
   if (!user) {
     router.push("/login");
+    return null;
   }
+
+  const startCooldown = () => {
+    setResendCooldown(RESEND_COOLDOWN_SECONDS);
+
+    if (cooldownTimerRef.current) {
+      clearInterval(cooldownTimerRef.current);
+    }
+
+    cooldownTimerRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          if (cooldownTimerRef.current) {
+            clearInterval(cooldownTimerRef.current);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const sendOtp = async (phoneNumberValue: string) => {
     if (!phoneNumberValue) {
       setError("Please enter a valid phone number");
+      return;
+    }
+
+    if (resendCooldown > 0) {
+      setError(
+        `Please wait ${resendCooldown} seconds before requesting another code`
+      );
+      return;
+    }
+
+    // Check server-side rate limiting
+    if (checkRateLimit && !checkRateLimit.allowed) {
+      setError(
+        checkRateLimit.reason || "Rate limit exceeded. Please try again later."
+      );
       return;
     }
 
@@ -54,11 +115,31 @@ export default function VerifyPhonePage() {
       });
 
       if (otpError) {
-        setError(otpError.message || "Failed to send OTP");
+        // Log failed attempt
+        await logSendAttempt({
+          phoneNumber: phoneNumberValue,
+          success: false,
+        });
+
+        const errorMsg = otpError.message || "Failed to send OTP";
+        setError(errorMsg);
       } else {
+        // Log successful attempt
+        await logSendAttempt({
+          phoneNumber: phoneNumberValue,
+          success: true,
+        });
+
         setStep("otp");
+        setVerificationAttempts(0);
+        startCooldown();
       }
     } catch {
+      // Log failed attempt on exception
+      await logSendAttempt({
+        phoneNumber: phoneNumberValue,
+        success: false,
+      });
       setError("Failed to send OTP. Please try again.");
     } finally {
       setIsLoading(false);
@@ -81,9 +162,32 @@ export default function VerifyPhonePage() {
     return verifyError.message || "Verification failed. Please try again.";
   };
 
+  const handleVerifyError = async (verifyError: {
+    status?: number;
+    message?: string;
+  }) => {
+    await logVerifyAttempt({ phoneNumber, success: false });
+    setVerificationAttempts((prev) => prev + 1);
+
+    const remainingAttempts =
+      MAX_VERIFICATION_ATTEMPTS - verificationAttempts - 1;
+    let errorMsg = handleVerificationError(verifyError);
+
+    if (remainingAttempts > 0 && remainingAttempts <= 3) {
+      errorMsg += ` (${remainingAttempts} attempts remaining)`;
+    }
+
+    setError(errorMsg);
+  };
+
   const verifyOtp = async () => {
     if (!otpCode || otpCode.length !== 6) {
       setError("Please enter a valid 6-digit verification code");
+      return;
+    }
+
+    if (verificationAttempts >= MAX_VERIFICATION_ATTEMPTS) {
+      setError("Too many failed attempts. Please request a new code.");
       return;
     }
 
@@ -95,22 +199,24 @@ export default function VerifyPhonePage() {
         phoneNumber,
         code: otpCode,
         disableSession: false,
-        updatePhoneNumber: true, // Always update phone number for existing user
+        updatePhoneNumber: true,
       });
 
       if (verifyError) {
-        setError(handleVerificationError(verifyError));
+        await handleVerifyError(verifyError);
       } else {
-        // Successful verification - redirect to onboarding
+        await logVerifyAttempt({ phoneNumber, success: true });
         router.push("/onboarding");
       }
     } catch (err) {
+      await logVerifyAttempt({ phoneNumber, success: false });
+      setVerificationAttempts((prev) => prev + 1);
+
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      if (errorMessage.includes("Too many attempts")) {
-        setError("Too many verification attempts. Please request a new code.");
-      } else {
-        setError("Failed to verify code. Please try again.");
-      }
+      const errorText = errorMessage.includes("Too many attempts")
+        ? "Too many verification attempts. Please request a new code."
+        : "Failed to verify code. Please try again.";
+      setError(errorText);
     } finally {
       setIsLoading(false);
     }
@@ -124,6 +230,16 @@ export default function VerifyPhonePage() {
 
   const handleResendOtp = async () => {
     await sendOtp(phoneNumber);
+  };
+
+  const getResendButtonText = () => {
+    if (isLoading) {
+      return "Sending...";
+    }
+    if (resendCooldown > 0) {
+      return `Resend code in ${resendCooldown}s`;
+    }
+    return "Didn't receive the code? Resend";
   };
 
   // Show loading while checking authentication
@@ -203,6 +319,16 @@ export default function VerifyPhonePage() {
 
         {step === "otp" && (
           <div className="space-y-4">
+            {verificationAttempts > 0 &&
+              verificationAttempts < MAX_VERIFICATION_ATTEMPTS && (
+                <div className="rounded-md bg-yellow-500/10 p-3 text-center">
+                  <p className="text-sm text-yellow-200">
+                    {MAX_VERIFICATION_ATTEMPTS - verificationAttempts}{" "}
+                    verification attempts remaining
+                  </p>
+                </div>
+              )}
+
             <form
               className="flex flex-col gap-8"
               onSubmit={(e) => {
@@ -217,7 +343,11 @@ export default function VerifyPhonePage() {
               />
               <Button
                 className="h-14"
-                disabled={isLoading || otpCode.length !== 6}
+                disabled={
+                  isLoading ||
+                  otpCode.length !== 6 ||
+                  verificationAttempts >= MAX_VERIFICATION_ATTEMPTS
+                }
                 size="lg"
                 type="submit"
               >
@@ -227,12 +357,12 @@ export default function VerifyPhonePage() {
 
             <div className="flex flex-col gap-2 text-center text-sm">
               <button
-                className="text-background/70 transition-colors hover:text-background"
-                disabled={isLoading}
+                className="text-background/70 transition-colors hover:text-background disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isLoading || resendCooldown > 0}
                 onClick={handleResendOtp}
                 type="button"
               >
-                {isLoading ? "Sending..." : "Didn't receive the code? Resend"}
+                {getResendButtonText()}
               </button>
               <button
                 className="text-background/70 transition-colors hover:text-background"
