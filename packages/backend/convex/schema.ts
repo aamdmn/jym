@@ -49,4 +49,28 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_scheduled_time", ["scheduledTime"])
     .index("by_user_and_status", ["userId", "status"]),
+
+  workouts: defineTable({
+    userId: v.string(),
+    threadId: v.string(),
+    date: v.string(), // YYYY-MM-DD
+    exercises: v.array(
+      v.object({
+        name: v.string(),
+        slug: v.string(), // URL-friendly identifier for exercise (e.g., "pushups", "squats")
+        sets: v.optional(v.number()),
+        reps: v.optional(v.number()),
+        weight: v.optional(v.number()),
+        duration: v.optional(v.number()), // For time-based exercises like planks
+        unit: v.optional(v.string()), // "seconds", "minutes", "lbs", "kg", etc.
+        completed: v.boolean(),
+        feedback: v.optional(v.string()),
+      })
+    ),
+    completed: v.boolean(),
+    currentExerciseIndex: v.number(), // Track which exercise is currently active
+  })
+    .index("by_thread", ["threadId"])
+    .index("by_user_date", ["userId", "date"])
+    .index("by_user_active", ["userId", "completed"]), // Index for finding active workouts
 });

@@ -189,6 +189,7 @@ export const getUserProfile = query({
   returns: v.union(
     v.object({
       _id: v.id("userProfiles"),
+      _creationTime: v.number(), // System field that Convex adds automatically
       userId: v.string(),
       platform: v.string(),
       onboardingComplete: v.boolean(),

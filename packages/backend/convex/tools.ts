@@ -53,6 +53,7 @@ export const updateOnboardingTool = createTool({
 export const completeOnboardingTool = createTool({
   description: "Complete the onboarding process",
   args: z.object({}),
+
   handler: async (ctx, _args, _options) => {
     if (!ctx.userId) {
       throw new Error("No userId available in context");
@@ -141,7 +142,7 @@ export const createTriggerTool = createTool({
 export const waitFunctionTool = createTool({
   description: "Use this tool if you don't want to do any action right now",
   args: z.object({}),
-  handler: async (ctx, args, _options) => {
+  handler: async (_ctx, _args, _options) => {
     return {
       success: true,
     };
@@ -215,7 +216,6 @@ export const startWorkoutTool = createTool({
   },
 });
 
-// Simple workout generator (no AI needed for MVP)
 async function generateSimpleWorkout({
   ctx,
   energy,
@@ -252,6 +252,11 @@ async function generateSimpleWorkout({
         exercises: z.array(
           z.object({
             name: z.string(),
+            slug: z
+              .string()
+              .describe(
+                "The slug of the exercise for example: pushups, squats, incline-bench-press, etc."
+              ),
             sets: z.number().optional(),
             reps: z.number().optional(),
             weight: z.number().optional(),
@@ -265,5 +270,95 @@ async function generateSimpleWorkout({
 
   return result.object;
 }
+
+// Update workout tool
+
+export const updateWorkoutTool = createTool({
+  description:
+    "Mark the current exercise as complete and advance to the next exercise. Use this when the user indicates they've finished an exercise.",
+  args: z.object({
+    slug: z
+      .string()
+      .describe(
+        "The slug of the exercise to mark complete (e.g., 'pushups', 'squats', 'incline-bench-press')"
+      ),
+    feedback: z
+      .string()
+      .optional()
+      .describe("Optional feedback from the user about the exercise"),
+  }),
+  handler: async (ctx, args) => {
+    if (!ctx.threadId) {
+      return { error: "No thread context available" };
+    }
+
+    // Get current exercise to verify it matches
+    const currentExercise = await ctx.runQuery(
+      api.workouts.getCurrentExercise,
+      {
+        threadId: ctx.threadId,
+      }
+    );
+
+    if (!currentExercise) {
+      return { error: "No active workout found" };
+    }
+
+    // Verify the slug matches the current exercise
+    if (currentExercise.exercise.slug !== args.slug) {
+      return {
+        error: `Exercise mismatch. Current exercise is "${currentExercise.exercise.slug}", not "${args.slug}"`,
+      };
+    }
+
+    // Mark the exercise complete and get next
+    const result = await ctx.runMutation(api.workouts.markExerciseComplete, {
+      workoutId: currentExercise.workoutId,
+      exerciseIndex: currentExercise.exerciseIndex,
+      feedback: args.feedback,
+    });
+
+    if (result.isWorkoutComplete) {
+      return {
+        complete: true,
+        message: "Workout complete! Great job!",
+        progress: result.progress,
+      };
+    }
+
+    return {
+      nextExercise: result.nextExercise,
+      progress: result.progress,
+      complete: false,
+    };
+  },
+});
+
+export const getCurrentExerciseTool = createTool({
+  description:
+    "Get the current exercise the user should be doing from their active workout. Use this to check what exercise is next in the flow.",
+  args: z.object({}),
+  handler: async (ctx, _args) => {
+    if (!ctx.threadId) {
+      return { error: "No thread context available" };
+    }
+
+    const currentExercise = await ctx.runQuery(
+      api.workouts.getCurrentExercise,
+      {
+        threadId: ctx.threadId,
+      }
+    );
+
+    if (!currentExercise) {
+      return { error: "No active workout found" };
+    }
+
+    return {
+      exercise: currentExercise.exercise,
+      progress: currentExercise.progress,
+    };
+  },
+});
 
 // Edit workout tool

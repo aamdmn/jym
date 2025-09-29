@@ -335,6 +335,71 @@ export const sendMessage = internalAction({
 });
 
 /**
+ * Parse response text and handle multiline tags
+ */
+function parseResponseIntoMessages(responseText: string): string[] {
+  const messages: string[] = [];
+  let currentIndex = 0;
+
+  while (currentIndex < responseText.length) {
+    // Look for multiline opening tag
+    const multilineStart = responseText.indexOf("<multiline>", currentIndex);
+
+    if (multilineStart === -1) {
+      // No more multiline tags, process remaining text normally
+      const remainingText = responseText.substring(currentIndex);
+      const remainingMessages = remainingText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+      messages.push(...remainingMessages);
+      break;
+    }
+
+    // Process text before multiline tag
+    if (multilineStart > currentIndex) {
+      const beforeMultiline = responseText.substring(
+        currentIndex,
+        multilineStart
+      );
+      const beforeMessages = beforeMultiline
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+      messages.push(...beforeMessages);
+    }
+
+    // Find closing multiline tag
+    const multilineEnd = responseText.indexOf("</multiline>", multilineStart);
+    if (multilineEnd === -1) {
+      // Malformed multiline tag, treat rest as normal text
+      const remainingText = responseText.substring(multilineStart);
+      const remainingMessages = remainingText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+      messages.push(...remainingMessages);
+      break;
+    }
+
+    // Extract multiline content (preserve line breaks within)
+    const multilineContentStart = multilineStart + "<multiline>".length;
+    const multilineContent = responseText
+      .substring(multilineContentStart, multilineEnd)
+      .trim();
+
+    if (multilineContent.length > 0) {
+      messages.push(multilineContent);
+    }
+
+    // Continue after closing tag
+    currentIndex = multilineEnd + "</multiline>".length;
+  }
+
+  return messages;
+}
+
+/**
  * Split agent response into multiple messages and send them with realistic delays
  */
 export const sendSplitMessages = internalAction({
@@ -350,11 +415,8 @@ export const sendSplitMessages = internalAction({
       args;
 
     try {
-      // Split response by newlines and filter out empty lines
-      const messages = responseText
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
+      // Parse multiline tags and handle mixed content
+      const messages = parseResponseIntoMessages(responseText);
 
       console.log(
         `Sending ${messages.length} split messages to ${phoneNumber}`

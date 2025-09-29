@@ -22,6 +22,7 @@ import type * as tools from "../tools.js";
 import type * as triggers from "../triggers.js";
 import type * as twilio from "../twilio.js";
 import type * as users from "../users.js";
+import type * as workouts from "../workouts.js";
 
 import type {
   ApiFromModules,
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   triggers: typeof triggers;
   twilio: typeof twilio;
   users: typeof users;
+  workouts: typeof workouts;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

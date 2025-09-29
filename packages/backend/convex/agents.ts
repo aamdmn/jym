@@ -8,8 +8,10 @@ import {
   checkOnboardingTool,
   completeOnboardingTool,
   createTriggerTool,
+  getCurrentExerciseTool,
   startWorkoutTool,
   updateOnboardingTool,
+  updateWorkoutTool,
   waitFunctionTool,
 } from "./tools";
 
@@ -65,6 +67,8 @@ export function createJymAgent(_ctx: ActionCtx) {
       createTrigger: createTriggerTool,
       wait: waitFunctionTool,
       startWorkout: startWorkoutTool,
+      updateWorkout: updateWorkoutTool,
+      getCurrentExercise: getCurrentExerciseTool,
     },
     contextHandler: (_, args) => {
       const context = createTimeAwareContextHandler(args);
