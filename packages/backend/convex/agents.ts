@@ -8,6 +8,7 @@ import {
   checkOnboardingTool,
   completeOnboardingTool,
   createTriggerTool,
+  startWorkoutTool,
   updateOnboardingTool,
   waitFunctionTool,
 } from "./tools";
@@ -59,10 +60,11 @@ export function createJymAgent(_ctx: ActionCtx) {
     languageModel: openai.chat("gpt-4.1"),
     textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
     instructions: MAIN_COACH_PROMPT,
-    maxSteps: 5, // Increased to allow for trigger creation
+    maxSteps: 5,
     tools: {
       createTrigger: createTriggerTool,
       wait: waitFunctionTool,
+      startWorkout: startWorkoutTool,
     },
     contextHandler: (_, args) => {
       const context = createTimeAwareContextHandler(args);
@@ -81,7 +83,7 @@ export function createOnboardingAgent(_ctx: ActionCtx) {
     languageModel: openai.chat("gpt-4.1"),
     textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
     instructions: ONBOARDING_PROMPT,
-    maxSteps: 3,
+    maxSteps: 5,
     tools: {
       checkOnboarding: checkOnboardingTool,
       updateOnboarding: updateOnboardingTool,
@@ -89,6 +91,22 @@ export function createOnboardingAgent(_ctx: ActionCtx) {
       createTrigger: createTriggerTool,
       wait: waitFunctionTool,
     },
+    contextHandler: (_, args) => {
+      const context = createTimeAwareContextHandler(args);
+      return context;
+    },
+  });
+}
+
+export function createWorkoutAgent(_ctx: ActionCtx) {
+  return new Agent(components.agent, {
+    name: "Workout Jym",
+    languageModel: openai.chat("gpt-4.1"),
+    textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
+    instructions:
+      "You are a workout coach. You are responsible for generating and starting a workout session based on user's energy and preferences.",
+    maxSteps: 5,
+    tools: {},
     contextHandler: (_, args) => {
       const context = createTimeAwareContextHandler(args);
       return context;

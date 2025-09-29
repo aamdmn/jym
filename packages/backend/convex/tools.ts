@@ -1,6 +1,8 @@
-import { createTool } from "@convex-dev/agent";
+import { createTool, type ToolCtx } from "@convex-dev/agent";
+import type { GenericDataModel } from "convex/server";
 import { z } from "zod";
 import { api, components, internal } from "./_generated/api";
+import { createWorkoutAgent } from "./agents";
 
 export const checkOnboardingTool = createTool({
   description: "Check if the user has completed onboarding questions",
@@ -145,3 +147,123 @@ export const waitFunctionTool = createTool({
     };
   },
 });
+
+export const startWorkoutTool = createTool({
+  description:
+    "Generate and start a workout session based on user's energy and preferences",
+  args: z.object({
+    energyLevel: z
+      .number()
+      .min(1)
+      .max(10)
+      .describe("User's current energy level"),
+    focusArea: z
+      .string()
+      .optional()
+      .describe(
+        "What to focus on, this will be different depending on the user's goals and fitness levels. An example: upper/lower/full"
+      ),
+    additionalContext: z
+      .string()
+      .optional()
+      .describe("Optional additional context about the workout or the user"),
+  }),
+  handler: async (ctx, args) => {
+    if (!ctx.userId) {
+      throw new Error("No userId available in context");
+    }
+
+    // Get user profile
+    const profile = await ctx.runQuery(api.users.getUserProfile, {
+      userId: ctx.userId,
+    });
+
+    if (!profile) {
+      throw new Error("User profile not found");
+    }
+
+    const preferences = {
+      equipment: profile.equipment,
+      injuries: profile.injuries,
+      goals: profile.goals,
+      focus: args.focusArea || undefined,
+    };
+
+    // Simple workout generation based on energy
+    const exercises = await generateSimpleWorkout({
+      ctx,
+      energy: args.energyLevel,
+      preferences,
+      additionalContext: args.additionalContext || undefined,
+    });
+
+    // Store the workout in the database
+    const workoutResult = await ctx.runMutation(api.workouts.createWorkout, {
+      userId: ctx.userId,
+      threadId: ctx.threadId,
+      date: new Date().toISOString().split("T")[0],
+      exercises,
+    });
+
+    // Return the excercises and the first exercise
+    return {
+      totalExercises: exercises.exercises.length,
+      allExercises: exercises.exercises,
+      firstExercise: exercises.exercises[0],
+      workoutId: workoutResult._id,
+    };
+  },
+});
+
+// Simple workout generator (no AI needed for MVP)
+async function generateSimpleWorkout({
+  ctx,
+  energy,
+  preferences,
+  additionalContext,
+}: {
+  ctx: ToolCtx<GenericDataModel>;
+  energy: number;
+  preferences: {
+    equipment: string;
+    injuries: string;
+    goals: string;
+    focus?: string;
+  };
+  additionalContext?: string;
+}) {
+  const workoutAgeent = createWorkoutAgent(ctx);
+
+  /* 
+  ++ This will need more details
+  ++ Needs to also populate here all the excercises that are available with their slugs/ids 
+  */
+  const prompt = `
+  Generate a workout for the user with ${energy} energy and ${additionalContext} additional context
+  User's preferences: ${JSON.stringify(preferences)}
+  `;
+
+  const result = await workoutAgeent.generateObject(
+    ctx,
+    { threadId: ctx.threadId, userId: ctx.userId },
+    {
+      prompt,
+      schema: z.object({
+        exercises: z.array(
+          z.object({
+            name: z.string(),
+            sets: z.number().optional(),
+            reps: z.number().optional(),
+            weight: z.number().optional(),
+            duration: z.number().optional(),
+            unit: z.string().optional(),
+          })
+        ),
+      }),
+    }
+  );
+
+  return result.object;
+}
+
+// Edit workout tool

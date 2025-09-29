@@ -41,7 +41,7 @@ const PhoneInput = ({ className, ...props }: React.ComponentProps<"input">) => {
   return (
     <Input
       className={cn(
-        "-ms-px rounded-s-none! py-7! font-normal font-sans text-xl shadow-none focus-visible:z-10",
+        "-ms-px rounded-s-none! py-7! font-mono font-normal text-xl shadow-none focus-visible:z-10",
         className
       )}
       data-slot="phone-input"

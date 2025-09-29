@@ -15,31 +15,31 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const serif = localFont({
-  variable: "--font-instrument-serif",
+const rockGrotesk = localFont({
+  variable: "--font-rock-grotesk",
   src: [
     {
-      path: "../fonts/Erode-Light.woff2",
+      path: "../fonts/Fontspring-DEMO-rocgrotesk-light.otf",
       weight: "300",
       style: "normal",
     },
     {
-      path: "../fonts/Erode-Regular.woff2",
+      path: "../fonts/Fontspring-DEMO-rocgrotesk-regular.otf",
       weight: "400",
       style: "normal",
     },
     {
-      path: "../fonts/Erode-Medium.woff2",
+      path: "../fonts/Fontspring-DEMO-rocgrotesk-medium.otf",
       weight: "500",
       style: "normal",
     },
     {
-      path: "../fonts/Erode-Semibold.woff2",
+      path: "../fonts/Fontspring-DEMO-rocgrotesk-bold.otf",
       weight: "600",
       style: "normal",
     },
     {
-      path: "../fonts/Erode-Bold.woff2",
+      path: "../fonts/Fontspring-DEMO-rocgrotesk-extrabold.otf",
       weight: "700",
       style: "normal",
     },
@@ -59,7 +59,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${outfit.variable} ${geistMono.variable} ${serif.variable} antialiased`}
+        className={`${outfit.variable} ${geistMono.variable} ${rockGrotesk.variable} font-sans antialiased`}
       >
         <ConvexClientProvider>
           <AutumnWrapper>{children}</AutumnWrapper>
