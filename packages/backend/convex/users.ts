@@ -192,6 +192,7 @@ export const getUserProfile = query({
       _id: v.id("userProfiles"),
       _creationTime: v.number(), // System field that Convex adds automatically
       userId: v.string(),
+      telegramId: v.optional(v.number()), // Added for Telegram integration
       platform: v.string(),
       onboardingComplete: v.boolean(),
       fitnessLevel: v.string(),

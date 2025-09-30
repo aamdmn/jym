@@ -57,7 +57,7 @@ export default defineSchema({
     exercises: v.array(
       v.object({
         name: v.string(),
-        slug: v.string(), // URL-friendly identifier for exercise (e.g., "pushups", "squats")
+        slug: v.string(), // Exercise slug matching the exercises table (e.g., "pushups", "squats", "incline-bench-press")
         sets: v.optional(v.number()),
         reps: v.optional(v.number()),
         weight: v.optional(v.number()),

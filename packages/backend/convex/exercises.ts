@@ -200,6 +200,79 @@ export const batchCreateOrUpdateExercises = mutation({
 // Get exercise by slug
 export const getExerciseBySlug = query({
   args: { slug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id("exercises"),
+      _creationTime: v.number(),
+      slug: v.string(),
+      name: v.string(),
+      sourceUrl: v.string(),
+      media: v.object({
+        primary_gif: v.optional(v.string()),
+        primary_video: v.optional(v.string()),
+        thumbnail: v.optional(v.string()),
+        banner_image: v.optional(v.string()),
+        additional_media: v.array(
+          v.object({
+            type: v.string(),
+            url: v.string(),
+            description: v.optional(v.string()),
+          })
+        ),
+      }),
+      muscleGroups: v.object({
+        primary: v.array(
+          v.object({
+            name: v.string(),
+            icon_url: v.optional(v.string()),
+          })
+        ),
+        secondary: v.array(
+          v.object({
+            name: v.string(),
+            icon_url: v.optional(v.string()),
+          })
+        ),
+      }),
+      equipment: v.object({
+        primary: v.optional(
+          v.object({
+            name: v.string(),
+            type: v.string(),
+            image_url: v.optional(v.string()),
+          })
+        ),
+        additional: v.array(
+          v.object({
+            name: v.string(),
+            type: v.string(),
+            image_url: v.optional(v.string()),
+          })
+        ),
+      }),
+      metadata: v.object({
+        difficulty: v.optional(v.string()),
+        exercise_type: v.optional(v.string()),
+        log_type: v.optional(v.string()),
+        force: v.optional(v.string()),
+        mechanic: v.optional(v.string()),
+        category: v.optional(v.string()),
+      }),
+      instructions: v.object({
+        main: v.optional(v.string()),
+        steps: v.array(v.string()),
+        tips: v.array(v.string()),
+        warnings: v.array(v.string()),
+      }),
+      tags: v.array(v.string()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      status: v.optional(
+        v.union(v.literal("active"), v.literal("draft"), v.literal("archived"))
+      ),
+    })
+  ),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("exercises")
@@ -218,6 +291,88 @@ export const exerciseExists = query({
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
     return !!exercise;
+  },
+});
+
+// Get exercises for workout generation (lightweight with just essential info)
+export const getExercisesForWorkout = query({
+  args: {
+    equipment: v.optional(v.string()),
+    difficulty: v.optional(v.string()),
+    muscleGroup: v.optional(v.string()),
+    category: v.optional(v.string()),
+  },
+  returns: v.array(
+    v.object({
+      slug: v.string(),
+      name: v.string(),
+      difficulty: v.optional(v.string()),
+      category: v.optional(v.string()),
+      exerciseType: v.optional(v.string()),
+      primaryMuscles: v.array(v.string()),
+      secondaryMuscles: v.array(v.string()),
+      primaryEquipment: v.optional(v.string()),
+      hasVideo: v.boolean(),
+      hasGif: v.boolean(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const allExercises = await ctx.db
+      .query("exercises")
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    // Map to lightweight format
+    const exerciseList = allExercises.map((ex) => ({
+      slug: ex.slug,
+      name: ex.name,
+      difficulty: ex.metadata.difficulty,
+      category: ex.metadata.category,
+      exerciseType: ex.metadata.exercise_type,
+      primaryMuscles: ex.muscleGroups.primary.map((m) => m.name),
+      secondaryMuscles: ex.muscleGroups.secondary.map((m) => m.name),
+      primaryEquipment: ex.equipment.primary?.name,
+      hasVideo: !!ex.media.primary_video,
+      hasGif: !!ex.media.primary_gif,
+    }));
+
+    // Apply filters if provided
+    let filtered = exerciseList;
+
+    if (args.difficulty) {
+      filtered = filtered.filter(
+        (ex) => ex.difficulty?.toLowerCase() === args.difficulty?.toLowerCase()
+      );
+    }
+
+    if (args.category) {
+      filtered = filtered.filter(
+        (ex) => ex.category?.toLowerCase() === args.category?.toLowerCase()
+      );
+    }
+
+    if (args.muscleGroup) {
+      filtered = filtered.filter(
+        (ex) =>
+          ex.primaryMuscles.some(
+            (m) => m.toLowerCase() === args.muscleGroup?.toLowerCase()
+          ) ||
+          ex.secondaryMuscles.some(
+            (m) => m.toLowerCase() === args.muscleGroup?.toLowerCase()
+          )
+      );
+    }
+
+    if (args.equipment) {
+      filtered = filtered.filter(
+        (ex) =>
+          ex.primaryEquipment?.toLowerCase() ===
+            args.equipment?.toLowerCase() ||
+          args.equipment?.toLowerCase() === "bodyweight"
+      );
+    }
+
+    return filtered;
   },
 });
 

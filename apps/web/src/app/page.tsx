@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  IconDice2Filled,
   IconLoader2,
   IconLogin2,
   IconMessage,

@@ -7,17 +7,32 @@ import { createWorkoutAgent } from "./agents";
 export const checkOnboardingTool = createTool({
   description: "Check if the user has completed onboarding questions",
   args: z.object({}),
-  handler: async (ctx, _args, _options) => {
+  handler: async (
+    ctx,
+    _args,
+    _options
+  ): Promise<{
+    onboardingComplete: boolean;
+    fitnessLevel?: string;
+    goals?: string;
+    equipment?: string;
+    injuries?: string;
+  }> => {
     // ctx has agent, userId, threadId, messageId
     // as well as ActionCtx properties like auth, storage, runMutation, and runAction
     if (!ctx.userId) {
       throw new Error("No userId available in context");
     }
 
-    const onboardingInfo = await ctx.runQuery(api.users.getUserOnboardingInfo, {
+    const onboardingInfo: {
+      onboardingComplete: boolean;
+      fitnessLevel?: string;
+      goals?: string;
+      equipment?: string;
+      injuries?: string;
+    } = await ctx.runQuery(api.users.getUserOnboardingInfo, {
       userId: ctx.userId,
     });
-    console.log("found onboardingInfo for user", ctx.userId, onboardingInfo);
     return onboardingInfo;
   },
 });
@@ -43,7 +58,6 @@ export const updateOnboardingTool = createTool({
       equipment: args.equipment,
       injuries: args.injuries,
     });
-    console.log("updated onboarding for user", ctx.userId);
     return {
       success: true,
     };
@@ -62,7 +76,6 @@ export const completeOnboardingTool = createTool({
     await ctx.runMutation(api.users.completeOnboarding, {
       userId: ctx.userId,
     });
-    console.log("completed onboarding for user", ctx.userId);
     return {
       success: true,
     };
@@ -96,7 +109,16 @@ export const createTriggerTool = createTool({
         "Optional additional context about the trigger (e.g., 'legs day', 'morning run')"
       ),
   }),
-  handler: async (ctx, args, _options) => {
+  handler: async (
+    ctx,
+    args,
+    _options
+  ): Promise<{
+    success: boolean;
+    triggerId: string;
+    scheduledTime: string;
+    message: string;
+  }> => {
     if (!ctx.userId) {
       throw new Error("No userId available in context");
     }
@@ -112,23 +134,18 @@ export const createTriggerTool = createTool({
     }
 
     // Create the trigger in the database and schedule it
-    const result = await ctx.runMutation(internal.triggers.createTrigger, {
-      userId: ctx.userId,
-      triggerMessage: args.triggerMessage,
-      runAt: args.runAt,
-      phoneNumber: user.phoneNumber,
-      threadId: ctx.threadId, // Pass the current thread ID if available
-      metadata: {
-        type: args.triggerType,
-        context: args.additionalContext,
-      },
-    });
-
-    console.log(
-      `Created trigger ${result.triggerId} for user ${ctx.userId} to run at ${new Date(
-        args.runAt
-      ).toISOString()}`
-    );
+    const result: { triggerId: string; scheduledFunctionId: string } =
+      await ctx.runMutation(internal.triggers.createTrigger, {
+        userId: ctx.userId,
+        triggerMessage: args.triggerMessage,
+        runAt: args.runAt,
+        phoneNumber: user.phoneNumber,
+        threadId: ctx.threadId, // Pass the current thread ID if available
+        metadata: {
+          type: args.triggerType,
+          context: args.additionalContext,
+        },
+      });
 
     return {
       success: true,
@@ -142,12 +159,23 @@ export const createTriggerTool = createTool({
 export const waitFunctionTool = createTool({
   description: "Use this tool if you don't want to do any action right now",
   args: z.object({}),
-  handler: async (_ctx, _args, _options) => {
-    return {
+  handler: (_ctx, _args, _options): Promise<{ success: boolean }> => {
+    return Promise.resolve({
       success: true,
-    };
+    });
   },
 });
+
+// Helper function to get energy description
+function getEnergyDescription(energy: number): string {
+  if (energy <= 3) {
+    return "(low energy - keep it short and light)";
+  }
+  if (energy <= 6) {
+    return "(moderate energy - balanced workout)";
+  }
+  return "(high energy - can push harder)";
+}
 
 export const startWorkoutTool = createTool({
   description:
@@ -232,18 +260,88 @@ async function generateSimpleWorkout({
   };
   additionalContext?: string;
 }) {
-  const workoutAgeent = createWorkoutAgent(ctx);
+  const workoutAgent = createWorkoutAgent(ctx);
 
-  /* 
-  ++ This will need more details
-  ++ Needs to also populate here all the excercises that are available with their slugs/ids 
-  */
+  // Fetch all available exercises from the database
+  const availableExercises = await ctx.runQuery(
+    api.exercises.getExercisesForWorkout,
+    {
+      equipment: preferences.equipment,
+    }
+  );
+
+  if (availableExercises.length === 0) {
+    throw new Error(
+      "No exercises available in the database for the given criteria"
+    );
+  }
+
+  // Create a formatted list of exercises for the AI
+  const exerciseList = availableExercises
+    .map((ex) => {
+      const equipment = ex.primaryEquipment
+        ? `equipment: ${ex.primaryEquipment}`
+        : "bodyweight";
+      const difficulty = ex.difficulty || "N/A";
+      return `- ${ex.name} (slug: "${ex.slug}", muscles: ${ex.primaryMuscles.join(", ")}, ${equipment}, difficulty: ${difficulty})`;
+    })
+    .join("\n");
+
+  // Get valid slugs for validation
+  const validSlugs = availableExercises.map((ex: { slug: string }) => ex.slug);
+
   const prompt = `
-  Generate a workout for the user with ${energy} energy and ${additionalContext} additional context
-  User's preferences: ${JSON.stringify(preferences)}
+# Workout Generation Task
+
+Generate a personalized workout based on the following parameters:
+
+## User Parameters:
+- Energy Level: ${energy}/10 ${getEnergyDescription(energy)}
+- Goals: ${preferences.goals}
+- Available Equipment: ${preferences.equipment}
+- Injuries/Limitations: ${preferences.injuries}
+${preferences.focus ? `- Focus Area: ${preferences.focus}` : ""}
+${additionalContext ? `- Additional Context: ${additionalContext}` : ""}
+
+## Guidelines:
+1. **Duration**: Based on energy level
+   - Low energy (1-3): 10-15 minutes, 3-4 exercises
+   - Moderate energy (4-6): 20-30 minutes, 5-7 exercises
+   - High energy (7-10): 30-45 minutes, 7-10 exercises
+
+2. **Exercise Selection**: 
+   - Start with a warmup exercise (like arm-circles, jumping-jacks, etc.)
+   - Build a balanced workout targeting the requested muscle groups
+   - Consider the user's equipment availability
+   - Account for any injuries or limitations
+   - End with a cool-down or stretch if appropriate
+
+3. **Sets and Reps**:
+   - Low energy: Lower volume (2-3 sets, 8-10 reps)
+   - Moderate energy: Standard volume (3-4 sets, 10-12 reps)
+   - High energy: Higher volume (4-5 sets, 12-15 reps)
+   - For time-based exercises (planks, holds), adjust duration accordingly
+
+4. **Exercise Progression**:
+   - Order exercises logically (compound movements first, then isolation)
+   - Alternate muscle groups to allow recovery
+   - Consider fatigue accumulation
+
+## CRITICAL: Available Exercises Database
+You MUST ONLY use exercises from this list. Use the EXACT slug provided:
+
+${exerciseList}
+
+## Output Requirements:
+- Return an array of exercises with EXACT slugs from the list above
+- Include appropriate sets, reps, weight (if applicable), duration (for time-based), and unit
+- Ensure the workout flows logically from warmup to main work to cooldown
+- **VALIDATION**: Every slug you output MUST be from the available exercises list above
+
+Generate a complete, balanced workout that matches the user's energy level and goals.
   `;
 
-  const result = await workoutAgeent.generateObject(
+  const result = await workoutAgent.generateObject(
     ctx,
     { threadId: ctx.threadId, userId: ctx.userId },
     {
@@ -251,22 +349,53 @@ async function generateSimpleWorkout({
       schema: z.object({
         exercises: z.array(
           z.object({
-            name: z.string(),
+            name: z.string().describe("The display name of the exercise"),
             slug: z
               .string()
               .describe(
-                "The slug of the exercise for example: pushups, squats, incline-bench-press, etc."
+                "MUST be an EXACT slug from the available exercises list (e.g., 'pushups', 'squats', 'incline-bench-press')"
               ),
-            sets: z.number().optional(),
-            reps: z.number().optional(),
-            weight: z.number().optional(),
-            duration: z.number().optional(),
-            unit: z.string().optional(),
+            sets: z
+              .number()
+              .optional()
+              .describe("Number of sets (omit for warmup/cooldown)"),
+            reps: z
+              .number()
+              .optional()
+              .describe(
+                "Number of reps per set (omit for time-based exercises)"
+              ),
+            weight: z
+              .number()
+              .optional()
+              .describe("Weight in lbs or kg if applicable"),
+            duration: z
+              .number()
+              .optional()
+              .describe("Duration in seconds for time-based exercises"),
+            unit: z
+              .string()
+              .optional()
+              .describe(
+                "Unit of measurement (seconds, minutes, lbs, kg, etc.)"
+              ),
           })
         ),
       }),
     }
   );
+
+  // Validate that all generated slugs exist in the database
+  const generatedSlugs = result.object.exercises.map((ex) => ex.slug);
+  const invalidSlugs = generatedSlugs.filter(
+    (slug) => !validSlugs.includes(slug)
+  );
+
+  if (invalidSlugs.length > 0) {
+    throw new Error(
+      `Workout generation failed: Invalid exercise slugs generated: ${invalidSlugs.join(", ")}. All exercises must exist in the database.`
+    );
+  }
 
   return result.object;
 }

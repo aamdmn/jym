@@ -1,6 +1,5 @@
 import { Twilio } from "@convex-dev/twilio";
 import { components } from "./_generated/api";
-import { action } from "./_generated/server";
 
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 

@@ -75,6 +75,48 @@ http.route({
   }),
 });
 
+// Twilio SMS webhook endpoint (POST)
+http.route({
+  path: "/sms/webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      // Twilio sends data as application/x-www-form-urlencoded
+      const formData = await req.formData();
+
+      // Convert FormData to plain object
+      const webhookData: Record<string, string> = {};
+      for (const [key, value] of formData.entries()) {
+        webhookData[key] = value.toString();
+      }
+
+      console.log("Twilio SMS webhook received:", webhookData);
+
+      // Process incoming SMS
+      await ctx.runMutation(internal.sms.processIncomingMessage, {
+        webhookData,
+      });
+
+      // Twilio expects an empty 200 response or TwiML response
+      // Return empty response to acknowledge receipt
+      return new Response("", {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain",
+        },
+      });
+    } catch (error) {
+      console.error("Error processing Twilio SMS webhook:", error);
+      return new Response("Internal server error", {
+        status: 500,
+        headers: {
+          "Content-Type": "text/plain",
+        },
+      });
+    }
+  }),
+});
+
 // WhatsApp webhook verification endpoint (GET)
 // Meta will send a verification request when you configure the webhook
 http.route({

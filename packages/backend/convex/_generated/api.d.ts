@@ -20,6 +20,8 @@ import type * as otp_twilioSDK from "../otp/twilioSDK.js";
 import type * as otpRateLimit from "../otpRateLimit.js";
 import type * as playground from "../playground.js";
 import type * as prompts from "../prompts.js";
+import type * as sms from "../sms.js";
+import type * as telegram from "../telegram.js";
 import type * as test_loopmessage from "../test_loopmessage.js";
 import type * as test_triggers from "../test_triggers.js";
 import type * as test_whatsapp from "../test_whatsapp.js";
@@ -57,6 +59,8 @@ declare const fullApi: ApiFromModules<{
   otpRateLimit: typeof otpRateLimit;
   playground: typeof playground;
   prompts: typeof prompts;
+  sms: typeof sms;
+  telegram: typeof telegram;
   test_loopmessage: typeof test_loopmessage;
   test_triggers: typeof test_triggers;
   test_whatsapp: typeof test_whatsapp;
