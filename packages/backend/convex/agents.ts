@@ -1,8 +1,11 @@
 import { openai } from "@ai-sdk/openai";
 import { Agent } from "@convex-dev/agent";
+import type { GenericCtx, RunActionCtx } from "@convex-dev/better-auth";
 import type { ModelMessage } from "ai";
 import { components } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
+import { authComponent } from "./auth";
 import { MAIN_COACH_PROMPT, ONBOARDING_PROMPT } from "./prompts";
 import {
   checkOnboardingTool,
@@ -20,7 +23,7 @@ import {
 /**
  * Shared context handler that adds current date/time to all agent interactions
  */
-function createTimeAwareContextHandler(args: {
+async function createTimeAwareContextHandler(args: {
   allMessages: ModelMessage[];
   search: ModelMessage[];
   recent: ModelMessage[];
@@ -29,7 +32,8 @@ function createTimeAwareContextHandler(args: {
   existingResponses: ModelMessage[];
   userId: string | undefined;
   threadId: string | undefined;
-}): ModelMessage[] {
+  ctx: RunActionCtx;
+}): Promise<ModelMessage[]> {
   // Add current date/time context to every interaction
   const now = new Date();
   const timeContext = {
@@ -45,8 +49,23 @@ function createTimeAwareContextHandler(args: {
     })}. Current timestamp: ${Date.now()} milliseconds since epoch.`,
   };
 
+  if (!args.userId) {
+    throw new Error("No userId available in context");
+  }
+
+  const user = await authComponent.getAnyUserById(
+    args.ctx as GenericCtx<DataModel>,
+    args.userId
+  );
+
+  const userContext = {
+    role: "system" as const,
+    content: `User name: ${user?.name}\nUser email: ${user?.email}\nUser id: ${user?._id}`,
+  };
+
   return [
     timeContext,
+    userContext,
     ...args.search,
     ...args.recent,
     ...args.inputMessages,
@@ -74,8 +93,11 @@ export function createJymAgent(_ctx: ActionCtx) {
       editWorkout: editWorkoutTool,
       completeWorkout: completeWorkoutTool,
     },
-    contextHandler: (_, args) => {
-      const context = createTimeAwareContextHandler(args);
+    contextHandler: async (ctx, args) => {
+      const context = await createTimeAwareContextHandler({
+        ...args,
+        ctx: ctx as RunActionCtx,
+      });
 
       return context;
     },
@@ -99,8 +121,11 @@ export function createOnboardingAgent(_ctx: ActionCtx) {
       createTrigger: createTriggerTool,
       wait: waitFunctionTool,
     },
-    contextHandler: (_, args) => {
-      const context = createTimeAwareContextHandler(args);
+    contextHandler: async (ctx, args) => {
+      const context = await createTimeAwareContextHandler({
+        ...args,
+        ctx: ctx as RunActionCtx,
+      });
       return context;
     },
   });
@@ -115,8 +140,11 @@ export function createWorkoutAgent(_ctx: ActionCtx) {
       "You are a workout coach. You are responsible for generating and starting a workout session based on user's energy and preferences.",
     maxSteps: 5,
     tools: {},
-    contextHandler: (_, args) => {
-      const context = createTimeAwareContextHandler(args);
+    contextHandler: async (ctx, args) => {
+      const context = await createTimeAwareContextHandler({
+        ...args,
+        ctx: ctx as RunActionCtx,
+      });
       return context;
     },
   });
@@ -135,8 +163,11 @@ export const jymAgent: Agent<typeof components.agent> = new Agent(
       createTrigger: createTriggerTool,
       wait: waitFunctionTool,
     },
-    contextHandler: (_, args) => {
-      const context = createTimeAwareContextHandler(args);
+    contextHandler: async (ctx, args) => {
+      const context = await createTimeAwareContextHandler({
+        ...args,
+        ctx: ctx as RunActionCtx,
+      });
       return context;
     },
   }
@@ -155,8 +186,11 @@ export const onboardingAgent: Agent<typeof components.agent> = new Agent(
       updateOnboarding: updateOnboardingTool,
       completeOnboarding: completeOnboardingTool,
     },
-    contextHandler: (_, args) => {
-      const context = createTimeAwareContextHandler(args);
+    contextHandler: async (ctx, args) => {
+      const context = await createTimeAwareContextHandler({
+        ...args,
+        ctx: ctx as RunActionCtx,
+      });
       return context;
     },
   }

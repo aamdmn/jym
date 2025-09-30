@@ -58,7 +58,7 @@ export default function Page() {
           className="w-fit"
           onClick={() => {
             createWhatsAppDeepLink({
-              message: "I want to get started with Jym!",
+              message: "done! let's  get started",
             });
           }}
           size="lg"
@@ -87,7 +87,7 @@ export default function Page() {
         <Button
           className="w-fit"
           onClick={() => {
-            createWhatsAppDeepLink({ message: "Let's start a workout!" });
+            createWhatsAppDeepLink({ message: "let's start a workout!" });
           }}
           size="lg"
         >
@@ -163,7 +163,7 @@ export default function Page() {
         <Button
           className="w-fit"
           onClick={() => {
-            createWhatsAppDeepLink({ message: "Let's start a new workout!" });
+            createWhatsAppDeepLink({ message: "let's start a new workout!" });
           }}
           size="lg"
         >
