@@ -162,9 +162,9 @@ Generate a structured workout with:
 - Exercise name (display name)
 - Sets (if applicable)
 - Reps (if applicable)
-- Weight (if using weights)
+- Weight (if using weights) - **MUST match user's measuring system (metric=kg, imperial=lbs)**
 - Duration (for time-based exercises like planks)
-- Unit (seconds, minutes, lbs, kg, etc.)
+- Unit (seconds, minutes, lbs, kg, etc.) - **MUST match user's measuring system**
 
 ## Quality Checks
 - Verify all slugs match the provided database

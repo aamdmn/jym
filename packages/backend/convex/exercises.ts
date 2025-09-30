@@ -363,13 +363,31 @@ export const getExercisesForWorkout = query({
       );
     }
 
+    // Equipment filtering: if equipment is specified, include exercises that match
+    // OR exercises that don't require equipment (bodyweight)
     if (args.equipment) {
-      filtered = filtered.filter(
-        (ex) =>
-          ex.primaryEquipment?.toLowerCase() ===
-            args.equipment?.toLowerCase() ||
-          args.equipment?.toLowerCase() === "bodyweight"
-      );
+      const equipmentLower = args.equipment.toLowerCase();
+      filtered = filtered.filter((ex) => {
+        // No equipment requirement (bodyweight exercises)
+        if (
+          !ex.primaryEquipment ||
+          ex.primaryEquipment.toLowerCase() === "bodyweight"
+        ) {
+          return true;
+        }
+        // Matches the specified equipment
+        if (
+          ex.primaryEquipment.toLowerCase().includes(equipmentLower) ||
+          equipmentLower.includes(ex.primaryEquipment.toLowerCase())
+        ) {
+          return true;
+        }
+        // If user specified bodyweight, only return bodyweight exercises
+        if (equipmentLower === "bodyweight" || equipmentLower === "none") {
+          return false;
+        }
+        return false;
+      });
     }
 
     return filtered;

@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, Circle } from "lucide-react";
+import Link from "next/link";
 import {
   Accordion,
   AccordionContent,
@@ -84,8 +85,9 @@ export default function WorkoutCard({
             <AccordionContent className="pt-2 pb-0">
               <div className="flex flex-col gap-1.5">
                 {completedExercises.map((exercise) => (
-                  <div
-                    className="flex items-center gap-2 rounded-lg border border-gray-300 border-dashed bg-gray-50/50 px-3 py-2 opacity-70"
+                  <Link
+                    className="flex items-center gap-2 rounded-lg border border-gray-300 border-dashed bg-gray-50/50 px-3 py-2 opacity-70 transition-opacity hover:opacity-100"
+                    href={`/ex/${exercise.slug}`}
                     key={exercise.slug}
                   >
                     <CheckCircle2
@@ -98,7 +100,7 @@ export default function WorkoutCard({
                     <span className="text-muted-foreground text-xs">
                       {formatExerciseDetails(exercise)}
                     </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </AccordionContent>
@@ -114,8 +116,9 @@ export default function WorkoutCard({
           const isPast = isActive && exerciseIndex < currentExerciseIndex;
 
           return (
-            <div
-              className={`flex items-start gap-2.5 rounded-lg border border-dashed p-3 transition-all ${getBorderStyles(isCurrent, isPast)}`}
+            <Link
+              className={`flex items-start gap-2.5 rounded-lg border border-dashed p-3 transition-all hover:bg-muted/50 ${getBorderStyles(isCurrent, isPast)}`}
+              href={`/ex/${exercise.slug}`}
               key={exercise.slug}
             >
               <div className="mt-0.5 flex-shrink-0">
@@ -151,7 +154,7 @@ export default function WorkoutCard({
                   </p>
                 )}
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

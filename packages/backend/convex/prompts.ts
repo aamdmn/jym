@@ -94,7 +94,10 @@ When user gives energy level, immediately:
 3. Each exercise has a verified slug that links to detailed instructions and media
 4. Present the workout overview and first exercise
 
-**Important**: All exercises are pulled from a curated database with proper form videos, instructions, and safety guidelines. Every exercise slug is validated to ensure the user can access detailed information.
+**Important**: 
+- All exercises are pulled from a curated database with proper form videos, instructions, and safety guidelines. Every exercise slug is validated to ensure the user can access detailed information.
+- The workout is generated with the user's measuring system (metric=kg, imperial=lbs)
+- When presenting exercises, always use the units from the workout data (they're already in the user's preferred system)
 
 ### Phase 3: Exercise-by-Exercise Flow
 

@@ -2,11 +2,24 @@
 
 import { api } from "@jym/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { AlertTriangle, Dumbbell, Lightbulb, Target } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  Dumbbell,
+  Lightbulb,
+  Repeat,
+  Target,
+  Timer,
+  Weight,
+} from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { use } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { authClient } from "@/lib/auth-client";
 
 export default function ExercisePage({
   params,
@@ -14,12 +27,34 @@ export default function ExercisePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
+  const { data: session } = authClient.useSession();
+  const userId = session?.user?.id;
+
   const exercise = useQuery(api.exercises.getExerciseBySlug, { slug });
+  const activeWorkout = useQuery(
+    api.workouts.getActiveWorkoutByUserId,
+    userId ? { userId } : "skip"
+  );
+
+  // Find if this exercise is in the active workout
+  const workoutExercise = activeWorkout?.exercises.find(
+    (ex) => ex.slug === slug
+  );
+  const isCurrentExercise =
+    activeWorkout &&
+    workoutExercise &&
+    activeWorkout.exercises[activeWorkout.currentExerciseIndex]?.slug === slug;
 
   // Loading state
   if (exercise === undefined) {
     return (
       <div className="mx-auto my-10 flex max-w-3xl flex-col gap-6 px-4">
+        <Button asChild className="-ml-4 w-fit" variant="ghost">
+          <Link href="/app">
+            <ArrowLeft className="size-4" />
+            Back to Workout
+          </Link>
+        </Button>
         <div className="animate-pulse">
           <div className="mb-4 h-12 w-3/4 rounded-lg bg-gray-200" />
           <div className="mb-6 flex gap-2">
@@ -36,6 +71,12 @@ export default function ExercisePage({
   if (!exercise) {
     return (
       <div className="mx-auto my-10 flex max-w-3xl flex-col gap-6 px-4">
+        <Button asChild className="-ml-4 w-fit" variant="ghost">
+          <Link href="/app">
+            <ArrowLeft className="size-4" />
+            Back to Workout
+          </Link>
+        </Button>
         <div>
           <h1 className="mb-3 font-serif text-4xl text-primary">
             Exercise Not Found
@@ -50,11 +91,23 @@ export default function ExercisePage({
 
   return (
     <div className="mx-auto my-10 flex max-w-3xl flex-col gap-8 px-4">
+      {/* Back Button */}
+      <Button asChild className="-ml-4 w-fit" variant="ghost">
+        <Link href="/app">
+          <ArrowLeft className="size-4" />
+          Back to Workout
+        </Link>
+      </Button>
       {/* Header */}
       <div>
-        <h1 className="mb-4 font-serif text-4xl text-primary">
-          {exercise.name}
-        </h1>
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <h1 className="font-serif text-4xl text-primary">{exercise.name}</h1>
+          {isCurrentExercise && (
+            <Badge className="shrink-0" variant="default">
+              Current Exercise
+            </Badge>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           {exercise.metadata.difficulty && (
             <Badge variant="secondary">{exercise.metadata.difficulty}</Badge>
@@ -67,6 +120,83 @@ export default function ExercisePage({
           )}
         </div>
       </div>
+
+      {/* Active Workout Context */}
+      {workoutExercise && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {workoutExercise.completed ? (
+                <>
+                  <CheckCircle2 className="size-5 text-green-600" />
+                  <span>Completed in Today's Workout</span>
+                </>
+              ) : (
+                <>
+                  <Dumbbell className="size-5" />
+                  <span>Your Workout Plan</span>
+                </>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {workoutExercise.sets && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Repeat className="size-4" />
+                  <span className="text-sm">
+                    <strong className="text-foreground">
+                      {workoutExercise.sets}
+                    </strong>{" "}
+                    sets
+                  </span>
+                </div>
+              )}
+              {workoutExercise.reps && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Target className="size-4" />
+                  <span className="text-sm">
+                    <strong className="text-foreground">
+                      {workoutExercise.reps}
+                    </strong>{" "}
+                    reps
+                  </span>
+                </div>
+              )}
+              {workoutExercise.weight && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Weight className="size-4" />
+                  <span className="text-sm">
+                    <strong className="text-foreground">
+                      {workoutExercise.weight}
+                    </strong>{" "}
+                    {workoutExercise.unit || "lbs"}
+                  </span>
+                </div>
+              )}
+              {workoutExercise.duration && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Timer className="size-4" />
+                  <span className="text-sm">
+                    <strong className="text-foreground">
+                      {workoutExercise.duration}
+                    </strong>{" "}
+                    {workoutExercise.unit || "seconds"}
+                  </span>
+                </div>
+              )}
+            </div>
+            {workoutExercise.feedback && (
+              <div className="mt-4 rounded-lg bg-muted p-3">
+                <p className="text-muted-foreground text-sm">
+                  <strong className="text-foreground">Feedback:</strong>{" "}
+                  {workoutExercise.feedback}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Media */}
       {(exercise.media.primary_gif || exercise.media.primary_video) && (

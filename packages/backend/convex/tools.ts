@@ -198,41 +198,84 @@ export const startWorkoutTool = createTool({
       .describe("Optional additional context about the workout or the user"),
   }),
   handler: async (ctx, args) => {
+    console.log("[startWorkout] Starting workout generation", {
+      userId: ctx.userId,
+      energyLevel: args.energyLevel,
+      focusArea: args.focusArea,
+      threadId: ctx.threadId,
+    });
+
     if (!ctx.userId) {
       throw new Error("No userId available in context");
     }
 
     // Get user profile
+    console.log("[startWorkout] Fetching user profile...");
     const profile = await ctx.runQuery(api.users.getUserProfile, {
       userId: ctx.userId,
     });
 
     if (!profile) {
+      console.error(
+        "[startWorkout] User profile not found for userId:",
+        ctx.userId
+      );
       throw new Error("User profile not found");
     }
+
+    console.log("[startWorkout] User profile loaded:", {
+      equipment: profile.equipment,
+      goals: profile.goals,
+      injuries: profile.injuries,
+      measuringSystem: profile.mesuringSystem,
+    });
 
     const preferences = {
       equipment: profile.equipment,
       injuries: profile.injuries,
       goals: profile.goals,
+      measuringSystem: profile.mesuringSystem || "metric",
       focus: args.focusArea || undefined,
     };
 
     // Simple workout generation based on energy
-    const exercises = await generateSimpleWorkout({
-      ctx,
-      energy: args.energyLevel,
-      preferences,
-      additionalContext: args.additionalContext || undefined,
-    });
+    console.log(
+      "[startWorkout] Generating workout with preferences:",
+      preferences
+    );
+
+    let exercises;
+    try {
+      exercises = await generateSimpleWorkout({
+        ctx,
+        energy: args.energyLevel,
+        preferences,
+        additionalContext: args.additionalContext || undefined,
+      });
+      console.log("[startWorkout] Workout generated successfully:", {
+        exerciseCount: exercises.exercises.length,
+        exercises: exercises.exercises.map(
+          (e: { name: string; slug: string }) => ({
+            name: e.name,
+            slug: e.slug,
+          })
+        ),
+      });
+    } catch (error) {
+      console.error("[startWorkout] Error generating workout:", error);
+      throw error;
+    }
 
     // Store the workout in the database
+    console.log("[startWorkout] Storing workout in database...");
     const workoutResult = await ctx.runMutation(api.workouts.createWorkout, {
       userId: ctx.userId,
       threadId: ctx.threadId,
       date: new Date().toISOString().split("T")[0],
       exercises,
     });
+
+    console.log("[startWorkout] Workout stored with ID:", workoutResult._id);
 
     // Return the excercises and the first exercise
     return {
@@ -256,23 +299,65 @@ async function generateSimpleWorkout({
     equipment: string;
     injuries: string;
     goals: string;
+    measuringSystem: "metric" | "imperial";
     focus?: string;
   };
   additionalContext?: string;
 }) {
+  console.log("[generateSimpleWorkout] Starting workout generation", {
+    energy,
+    preferences,
+    additionalContext,
+  });
+
   const workoutAgent = createWorkoutAgent(ctx);
 
   // Fetch all available exercises from the database
-  const availableExercises = await ctx.runQuery(
+  console.log(
+    "[generateSimpleWorkout] Fetching exercises from database with equipment:",
+    preferences.equipment
+  );
+
+  let availableExercises = await ctx.runQuery(
     api.exercises.getExercisesForWorkout,
     {
       equipment: preferences.equipment,
     }
   );
 
+  console.log(
+    "[generateSimpleWorkout] Fetched exercises with equipment filter:",
+    {
+      count: availableExercises.length,
+      sample: availableExercises
+        .slice(0, 5)
+        .map((e: { name: string; slug: string }) => ({
+          name: e.name,
+          slug: e.slug,
+        })),
+    }
+  );
+
+  // Fallback: if no exercises found with equipment filter, fetch all exercises
   if (availableExercises.length === 0) {
+    console.warn(
+      "[generateSimpleWorkout] No exercises found with equipment filter, fetching all exercises..."
+    );
+    availableExercises = await ctx.runQuery(
+      api.exercises.getExercisesForWorkout,
+      {}
+    );
+    console.log("[generateSimpleWorkout] Fetched all exercises (no filter):", {
+      count: availableExercises.length,
+    });
+  }
+
+  if (availableExercises.length === 0) {
+    console.error(
+      "[generateSimpleWorkout] No exercises found in database at all!"
+    );
     throw new Error(
-      "No exercises available in the database for the given criteria"
+      "No exercises available in the database. Please add exercises first."
     );
   }
 
@@ -290,6 +375,9 @@ async function generateSimpleWorkout({
   // Get valid slugs for validation
   const validSlugs = availableExercises.map((ex: { slug: string }) => ex.slug);
 
+  const weightUnit = preferences.measuringSystem === "metric" ? "kg" : "lbs";
+  const timeUnit = "seconds";
+
   const prompt = `
 # Workout Generation Task
 
@@ -300,6 +388,7 @@ Generate a personalized workout based on the following parameters:
 - Goals: ${preferences.goals}
 - Available Equipment: ${preferences.equipment}
 - Injuries/Limitations: ${preferences.injuries}
+- Measuring System: ${preferences.measuringSystem} (use ${weightUnit} for weights)
 ${preferences.focus ? `- Focus Area: ${preferences.focus}` : ""}
 ${additionalContext ? `- Additional Context: ${additionalContext}` : ""}
 
@@ -327,6 +416,12 @@ ${additionalContext ? `- Additional Context: ${additionalContext}` : ""}
    - Alternate muscle groups to allow recovery
    - Consider fatigue accumulation
 
+5. **CRITICAL - Units**:
+   - User's measuring system: ${preferences.measuringSystem}
+   - All weights MUST be in ${weightUnit}
+   - Time-based exercises (planks, holds) should use seconds
+   - Always include the unit field: "${weightUnit}" for weights, "${timeUnit}" for time-based
+
 ## CRITICAL: Available Exercises Database
 You MUST ONLY use exercises from this list. Use the EXACT slug provided:
 
@@ -335,68 +430,111 @@ ${exerciseList}
 ## Output Requirements:
 - Return an array of exercises with EXACT slugs from the list above
 - Include appropriate sets, reps, weight (if applicable), duration (for time-based), and unit
+- **ALL weights must be in ${weightUnit}** (user's measuring system is ${preferences.measuringSystem})
+- **ALL time-based exercises must use seconds**
+- Always include the unit field with the correct value
 - Ensure the workout flows logically from warmup to main work to cooldown
 - **VALIDATION**: Every slug you output MUST be from the available exercises list above
 
 Generate a complete, balanced workout that matches the user's energy level and goals.
   `;
 
-  const result = await workoutAgent.generateObject(
-    ctx,
-    { threadId: ctx.threadId, userId: ctx.userId },
-    {
-      prompt,
-      schema: z.object({
-        exercises: z.array(
-          z.object({
-            name: z.string().describe("The display name of the exercise"),
-            slug: z
-              .string()
-              .describe(
-                "MUST be an EXACT slug from the available exercises list (e.g., 'pushups', 'squats', 'incline-bench-press')"
-              ),
-            sets: z
-              .number()
-              .optional()
-              .describe("Number of sets (omit for warmup/cooldown)"),
-            reps: z
-              .number()
-              .optional()
-              .describe(
-                "Number of reps per set (omit for time-based exercises)"
-              ),
-            weight: z
-              .number()
-              .optional()
-              .describe("Weight in lbs or kg if applicable"),
-            duration: z
-              .number()
-              .optional()
-              .describe("Duration in seconds for time-based exercises"),
-            unit: z
-              .string()
-              .optional()
-              .describe(
-                "Unit of measurement (seconds, minutes, lbs, kg, etc.)"
-              ),
-          })
-        ),
-      }),
-    }
+  console.log("[generateSimpleWorkout] Calling AI to generate workout...");
+  console.log("[generateSimpleWorkout] Prompt length:", prompt.length);
+  console.log(
+    "[generateSimpleWorkout] Available exercise count:",
+    availableExercises.length
   );
 
+  let result;
+  try {
+    result = await workoutAgent.generateObject(
+      ctx,
+      { threadId: ctx.threadId, userId: ctx.userId },
+      {
+        prompt,
+        schema: z.object({
+          exercises: z.array(
+            z.object({
+              name: z.string().describe("The display name of the exercise"),
+              slug: z
+                .string()
+                .describe(
+                  "MUST be an EXACT slug from the available exercises list (e.g., 'pushups', 'squats', 'incline-bench-press')"
+                ),
+              sets: z
+                .number()
+                .optional()
+                .describe("Number of sets (omit for warmup/cooldown)"),
+              reps: z
+                .number()
+                .optional()
+                .describe(
+                  "Number of reps per set (omit for time-based exercises)"
+                ),
+              weight: z
+                .number()
+                .optional()
+                .describe(
+                  `Weight if applicable - MUST be in ${weightUnit} (user's measuring system is ${preferences.measuringSystem})`
+                ),
+              duration: z
+                .number()
+                .optional()
+                .describe("Duration in seconds for time-based exercises"),
+              unit: z
+                .string()
+                .optional()
+                .describe(
+                  `Unit of measurement - use "${weightUnit}" for weights or "seconds" for time-based exercises`
+                ),
+            })
+          ),
+        }),
+      }
+    );
+    console.log("[generateSimpleWorkout] AI generation completed successfully");
+    console.log(
+      "[generateSimpleWorkout] Generated exercises count:",
+      result.object.exercises.length
+    );
+  } catch (error) {
+    console.error("[generateSimpleWorkout] Error during AI generation:", error);
+    console.error("[generateSimpleWorkout] Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw error;
+  }
+
   // Validate that all generated slugs exist in the database
-  const generatedSlugs = result.object.exercises.map((ex) => ex.slug);
+  console.log("[generateSimpleWorkout] Validating generated exercise slugs...");
+  const generatedSlugs = result.object.exercises.map(
+    (ex: { slug: string }) => ex.slug
+  );
+  console.log("[generateSimpleWorkout] Generated slugs:", generatedSlugs);
+
   const invalidSlugs = generatedSlugs.filter(
-    (slug) => !validSlugs.includes(slug)
+    (slug: string) => !validSlugs.includes(slug)
   );
 
   if (invalidSlugs.length > 0) {
+    console.error(
+      "[generateSimpleWorkout] Validation failed - invalid slugs:",
+      invalidSlugs
+    );
+    console.error(
+      "[generateSimpleWorkout] Valid slugs sample (first 10):",
+      validSlugs.slice(0, 10)
+    );
     throw new Error(
       `Workout generation failed: Invalid exercise slugs generated: ${invalidSlugs.join(", ")}. All exercises must exist in the database.`
     );
   }
 
+  console.log(
+    "[generateSimpleWorkout] Validation passed - all slugs are valid"
+  );
   return result.object;
 }
 
