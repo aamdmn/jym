@@ -1,5 +1,7 @@
 import { v } from "convex/values";
+import { components } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
+import { authComponent } from "./auth";
 
 export const getUserOnboardingInfo = query({
   args: {
@@ -87,8 +89,7 @@ export const updateOnboarding = mutation({
       }
 
       return; // Success case returns undefined
-    } catch (error) {
-      console.error("Error updating onboarding", error);
+    } catch {
       return {
         success: false,
         error:
@@ -230,5 +231,75 @@ export const checkOnboardingStatus = query({
       hasProfile: Boolean(profile),
       onboardingComplete: Boolean(profile?.onboardingComplete),
     };
+  },
+});
+
+export const deleteAccount = mutation({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx) => {
+    const user = await authComponent.getAuthUser(ctx);
+
+    if (!user?._id) {
+      throw new Error("User not authenticated");
+    }
+
+    const userId = user._id;
+
+    try {
+      // Delete user profile
+      const userProfile = await ctx.db
+        .query("userProfiles")
+        .withIndex("by_user_id")
+        .filter((q) => q.eq(q.field("userId"), userId))
+        .first();
+
+      if (userProfile) {
+        await ctx.db.delete(userProfile._id);
+      }
+
+      // Delete all workouts
+      const workouts = await ctx.db
+        .query("workouts")
+        .filter((q) => q.eq(q.field("userId"), userId))
+        .collect();
+
+      for (const workout of workouts) {
+        await ctx.db.delete(workout._id);
+      }
+
+      // Delete all triggers
+      const triggers = await ctx.db
+        .query("triggers")
+        .withIndex("by_user")
+        .filter((q) => q.eq(q.field("userId"), userId))
+        .collect();
+
+      for (const trigger of triggers) {
+        await ctx.db.delete(trigger._id);
+      }
+
+      // Delete the BetterAuth user (this will also delete sessions, accounts, etc.)
+      await ctx.runMutation(components.betterAuth.lib.deleteOne, {
+        model: "user",
+        where: [{ field: "id", value: userId }],
+      });
+
+      return {
+        success: true,
+        message: "Account deleted successfully",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete account. Please try again.",
+      };
+    }
   },
 });

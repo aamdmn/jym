@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import "./globals.css";
 import { AutumnWrapper } from "@/components/AutumnProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -62,7 +63,10 @@ export default function RootLayout({
         className={`${outfit.variable} ${geistMono.variable} ${rockGrotesk.variable} font-sans antialiased`}
       >
         <ConvexClientProvider>
-          <AutumnWrapper>{children}</AutumnWrapper>
+          <AutumnWrapper>
+            {children}
+            <Toaster />
+          </AutumnWrapper>
         </ConvexClientProvider>
       </body>
     </html>

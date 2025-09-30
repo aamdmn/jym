@@ -4,7 +4,7 @@ import { api } from "@jym/backend/convex/_generated/api";
 import { useCustomer } from "autumn-js/react";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
