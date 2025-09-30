@@ -1,12 +1,9 @@
-"use node";
-
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
 import { phoneNumber } from "better-auth/plugins";
 import { v } from "convex/values";
-import twilio from "twilio";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 
@@ -18,24 +15,6 @@ if (!siteUrl) {
 // The component client has methods needed for integrating Convex with Better Auth,
 // as well as helper methods for general use.
 export const authComponent = createClient<DataModel>(components.betterAuth);
-
-// Helper function to send OTP via Twilio
-async function sendOTPViaTwilio(phone: string, code: string) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const serviceSid = process.env.TWILIO_SERVICE_SID;
-
-  if (!(accountSid && authToken && serviceSid)) {
-    throw new Error("Twilio environment variables are not set");
-  }
-
-  const client = twilio(accountSid, authToken);
-  await client.verify.v2.services(serviceSid).verifications.create({
-    to: phone,
-    channel: "sms",
-    customCode: code,
-  });
-}
 
 export const createAuth = (
   ctx: GenericCtx<DataModel>,
@@ -59,7 +38,11 @@ export const createAuth = (
       phoneNumber({
         sendOTP: async ({ phoneNumber: phoneNumberParam, code }, _request) => {
           try {
-            await sendOTPViaTwilio(phoneNumberParam, code);
+            // @ts-expect-error - runAction is not available in the generic ctx
+            await ctx.runAction(internal.otp.twilioSDK.verify, {
+              phone: phoneNumberParam,
+              code,
+            });
           } catch (error) {
             throw new Error(
               `Failed to send OTP: ${error instanceof Error ? error.message : "Unknown error"}`
