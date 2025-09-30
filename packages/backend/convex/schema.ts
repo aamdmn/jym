@@ -86,4 +86,115 @@ export default defineSchema({
     .index("by_phone_and_type", ["phoneNumber", "attemptType"])
     .index("by_phone_and_timestamp", ["phoneNumber", "timestamp"])
     .index("by_user_and_type", ["userId", "attemptType"]),
+
+  exercises: defineTable({
+    // Core fields
+    slug: v.string(),
+    name: v.string(),
+    sourceUrl: v.string(),
+
+    // Media
+    media: v.object({
+      primary_gif: v.optional(v.string()),
+      primary_video: v.optional(v.string()),
+      thumbnail: v.optional(v.string()),
+      banner_image: v.optional(v.string()),
+      additional_media: v.array(
+        v.object({
+          type: v.string(),
+          url: v.string(),
+          description: v.optional(v.string()),
+        })
+      ),
+    }),
+
+    // Muscle groups
+    muscleGroups: v.object({
+      primary: v.array(
+        v.object({
+          name: v.string(),
+          icon_url: v.optional(v.string()),
+        })
+      ),
+      secondary: v.array(
+        v.object({
+          name: v.string(),
+          icon_url: v.optional(v.string()),
+        })
+      ),
+    }),
+
+    // Equipment
+    equipment: v.object({
+      primary: v.optional(
+        v.object({
+          name: v.string(),
+          type: v.string(),
+          image_url: v.optional(v.string()),
+        })
+      ),
+      additional: v.array(
+        v.object({
+          name: v.string(),
+          type: v.string(),
+          image_url: v.optional(v.string()),
+        })
+      ),
+    }),
+
+    // Metadata
+    metadata: v.object({
+      difficulty: v.optional(v.string()),
+      exercise_type: v.optional(v.string()),
+      log_type: v.optional(v.string()),
+      force: v.optional(v.string()),
+      mechanic: v.optional(v.string()),
+      category: v.optional(v.string()),
+    }),
+
+    // Instructions
+    instructions: v.object({
+      main: v.optional(v.string()),
+      steps: v.array(v.string()),
+      tips: v.array(v.string()),
+      warnings: v.array(v.string()),
+    }),
+
+    // Tags for searchability
+    tags: v.array(v.string()),
+
+    // Timestamps
+    createdAt: v.number(),
+    updatedAt: v.number(),
+
+    // Status
+    status: v.optional(
+      v.union(v.literal("active"), v.literal("draft"), v.literal("archived"))
+    ),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_name", ["name"])
+    .index("by_difficulty", ["metadata.difficulty"])
+    .index("by_category", ["metadata.category"])
+    .searchIndex("search_exercises", {
+      searchField: "name",
+      filterFields: ["metadata.difficulty", "metadata.category", "tags"],
+    }),
+
+  // Track scraping progress
+  scrapingJobs: defineTable({
+    status: v.union(
+      v.literal("pending"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    totalUrls: v.number(),
+    processedUrls: v.number(),
+    successfulScrapes: v.number(),
+    failedScrapes: v.number(),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    errors: v.array(v.string()),
+  }),
 });

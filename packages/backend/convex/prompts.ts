@@ -490,7 +490,7 @@ export const ONBOARDING_PROMPT = `
       <example>
         <description>Starting the onboarding</description>
         <format>
-alright before we get into the boring stuff
+alright (user's name) before we get into the boring stuff
 drop and give me 10 pushups
 right now
         </format>

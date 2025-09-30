@@ -11,6 +11,9 @@
 import type * as agents from "../agents.js";
 import type * as auth from "../auth.js";
 import type * as autumn from "../autumn.js";
+import type * as exercises from "../exercises.js";
+import type * as exercisesScraper from "../exercisesScraper.js";
+import type * as firecrawl from "../firecrawl.js";
 import type * as http from "../http.js";
 import type * as loopmessage from "../loopmessage.js";
 import type * as otp_twilioSDK from "../otp/twilioSDK.js";
@@ -45,6 +48,9 @@ declare const fullApi: ApiFromModules<{
   agents: typeof agents;
   auth: typeof auth;
   autumn: typeof autumn;
+  exercises: typeof exercises;
+  exercisesScraper: typeof exercisesScraper;
+  firecrawl: typeof firecrawl;
   http: typeof http;
   loopmessage: typeof loopmessage;
   "otp/twilioSDK": typeof otp_twilioSDK;
