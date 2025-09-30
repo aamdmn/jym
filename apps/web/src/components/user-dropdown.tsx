@@ -24,10 +24,8 @@ export default function UserDropdown() {
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuLabel>{session?.user?.name}</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Billing</DropdownMenuItem>
-          <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem>Logout</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

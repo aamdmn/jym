@@ -1,8 +1,15 @@
 "use client";
 
-import { ActivityIcon, SettingsIcon, TrendingUpIcon } from "lucide-react";
+import {
+  IconActivity,
+  IconHome,
+  IconHomeFilled,
+  IconSettings,
+  IconSettingsFilled,
+  IconTrendingUp,
+} from "@tabler/icons-react";
+import { SettingsIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
@@ -30,6 +37,7 @@ export default function TabsNavbar() {
     if (pathname.startsWith("/app/settings")) {
       return "settings";
     }
+
     return "home";
   };
 
@@ -55,79 +63,90 @@ export default function TabsNavbar() {
     }
   };
 
-  const getTabClass = (
-    tabValue: string,
-    position: "first" | "middle" | "last"
-  ) => {
-    return cn(
-      "flex items-center justify-center py-3 transition-colors",
-      position === "first" && "rounded-s-full",
-      position === "last" && "rounded-e-full",
-      activeTab === tabValue ? "bg-primary/10 text-primary" : "hover:bg-muted"
-    );
-  };
-
   return (
     <Tabs className="w-full" onValueChange={handleTabChange} value={activeTab}>
-      <TabsList className="grid w-full grid-cols-4 bg-background p-1 shadow-lg">
+      <TabsList className="flex w-full items-center justify-center gap-1 bg-background p-1 shadow-lg">
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
               <TabsTrigger
-                className={getTabClass("home", "first")}
+                className={cn(
+                  "flex cursor-pointer items-center justify-center gap-2 rounded-full py-3 transition-all",
+                  activeTab === "home"
+                    ? "bg-primary/10 px-4 text-primary"
+                    : "px-3 hover:bg-muted"
+                )}
                 value="home"
               >
-                <TrendingUpIcon size={20} />
+                {activeTab === "home" ? (
+                  <IconHomeFilled className="size-6 shrink-0 stroke-none" />
+                ) : (
+                  <IconHome className="size-6 shrink-0" />
+                )}
+                {activeTab === "home" && (
+                  <span className="font-medium text-sm">Home</span>
+                )}
               </TabsTrigger>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>Home</p>
-            </TooltipContent>
+            {activeTab !== "home" && (
+              <TooltipContent>
+                <p>Home</p>
+              </TooltipContent>
+            )}
           </Tooltip>
         </TooltipProvider>
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
               <TabsTrigger
-                className={getTabClass("workouts", "middle")}
+                className={cn(
+                  "flex cursor-pointer items-center justify-center gap-2 rounded-full py-3 transition-all",
+                  activeTab === "workouts"
+                    ? "bg-primary/10 px-4 text-primary"
+                    : "px-3 hover:bg-muted"
+                )}
                 value="workouts"
               >
-                <ActivityIcon size={20} />
+                <IconActivity className="size-6 shrink-0" />
+                {activeTab === "workouts" && (
+                  <span className="font-medium text-sm">Workouts</span>
+                )}
               </TabsTrigger>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>Workouts</p>
-            </TooltipContent>
+            {activeTab !== "workouts" && (
+              <TooltipContent>
+                <p>Workouts</p>
+              </TooltipContent>
+            )}
           </Tooltip>
         </TooltipProvider>
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
               <TabsTrigger
-                className={getTabClass("progress", "middle")}
-                value="progress"
-              >
-                <TrendingUpIcon size={20} />
-              </TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Progress</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger
-                className={getTabClass("settings", "last")}
+                className={cn(
+                  "flex cursor-pointer items-center justify-center gap-2 rounded-full py-3 transition-all",
+                  activeTab === "settings"
+                    ? "bg-primary/10 px-4 text-primary"
+                    : "px-3 hover:bg-muted"
+                )}
                 value="settings"
               >
-                <SettingsIcon size={20} />
+                {activeTab === "settings" ? (
+                  <IconSettingsFilled className="size-6 shrink-0" />
+                ) : (
+                  <IconSettings className="size-6 shrink-0" />
+                )}
+                {activeTab === "settings" && (
+                  <span className="font-medium text-sm">Settings</span>
+                )}
               </TabsTrigger>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>Settings</p>
-            </TooltipContent>
+            {activeTab !== "settings" && (
+              <TooltipContent>
+                <p>Settings</p>
+              </TooltipContent>
+            )}
           </Tooltip>
         </TooltipProvider>
       </TabsList>

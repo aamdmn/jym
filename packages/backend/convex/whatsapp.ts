@@ -103,6 +103,11 @@ export const processIncomingMessage = internalMutation({
     );
     console.log(`Message ID: ${messageId}, Timestamp: ${timestamp}`);
 
+    // Mark message as read immediately for better UX
+    await ctx.scheduler.runAfter(0, internal.whatsapp.markMessageAsRead, {
+      messageId,
+    });
+
     // Normalize phone number for betterAuth lookup (ensure + prefix)
     const normalizedPhone = senderPhone.startsWith("+")
       ? senderPhone
@@ -276,6 +281,59 @@ export const generateResponse = internalAction({
 });
 
 /**
+ * Mark a message as read via WhatsApp Business API
+ */
+export const markMessageAsRead = internalAction({
+  args: {
+    messageId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (_ctx, args) => {
+    const { messageId } = args;
+
+    try {
+      const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+      const apiVersion = process.env.WHATSAPP_API_VERSION || "v21.0";
+
+      if (!(accessToken && phoneNumberId)) {
+        console.error("WhatsApp credentials not configured");
+        return null;
+      }
+
+      const apiUrl = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          status: "read",
+          message_id: messageId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          `Failed to mark message as read: ${response.status} - ${errorText}`
+        );
+        return null;
+      }
+
+      console.log(`Message ${messageId} marked as read`);
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+    }
+
+    return null;
+  },
+});
+
+/**
  * Send message via WhatsApp Business API
  */
 export const sendMessage = internalAction({
@@ -420,25 +478,19 @@ export const sendSplitMessages = internalAction({
         `Sending ${messages.length} split messages to ${phoneNumber}`
       );
 
-      // Send each message with realistic delays
+      // Send each message with minimal delays for fast response
       for (let i = 0; i < messages.length; i++) {
         const message = messages[i];
 
-        // Calculate typing delay based on message length (simulate realistic typing speed)
-        // Average typing speed: ~40 WPM = ~200 characters per minute = ~3.3 chars per second
-        // Add some randomness and minimum delay
-        const typingDelayMs = Math.max(
-          800, // Minimum delay of 800ms
-          message.length * 50 + Math.random() * 500 // ~50ms per character + random variance
-        );
-
-        // Add delay before sending (except for first message)
+        // Add small delay between messages for readability (only after first message)
+        // Keep it minimal to reduce latency
         if (i > 0) {
-          await new Promise((resolve) => setTimeout(resolve, typingDelayMs));
+          const minimalDelay = Math.min(300, message.length * 5); // Very short delay, max 300ms
+          await new Promise((resolve) => setTimeout(resolve, minimalDelay));
         }
 
         console.log(
-          `Sending message ${i + 1}/${messages.length}: "${message}" (after ${i > 0 ? typingDelayMs : 0}ms delay)`
+          `Sending message ${i + 1}/${messages.length}: "${message}"`
         );
 
         // Send the individual message

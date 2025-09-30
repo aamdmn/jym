@@ -134,7 +134,7 @@ http.route({
     try {
       const body = await req.json();
 
-      console.log("WhatsApp webhook received:", JSON.stringify(body, null, 2));
+      console.log("WhatsApp webhook received:", body);
 
       // Check if this is a status update or a message
       const entry = body.entry?.[0];
