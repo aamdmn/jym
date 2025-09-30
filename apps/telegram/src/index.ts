@@ -1,12 +1,16 @@
-import { stepCountIs } from "ai";
-import { Bot, type Context } from "grammy";
+/** biome-ignore-all lint/suspicious/noConsole: <explanation> */
+import { conversations, createConversation } from "@grammyjs/conversations";
+import { Bot } from "grammy";
 import type { User } from "grammy/types";
-import { fitnessCoach } from "./lib/agent";
-import { OnboardingFlow } from "./lib/onboarding";
-import { getOrCreateUser } from "./lib/session";
-import { extractAgentMessage } from "./lib/utils";
+import { getOrCreateUser } from "./lib/context-manager";
+import {
+  fitnessConversation,
+  onboardingConversation,
+  quickWorkoutConversation,
+} from "./lib/conversation-builders";
+import type { MyContext } from "./lib/types";
 
-// Check environment variables
+// Environment validation
 if (!process.env.TELEGRAM_BOT_API_KEY) {
   throw new Error("TELEGRAM_BOT_API_KEY is not set");
 }
@@ -15,47 +19,43 @@ if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY is not set");
 }
 
-const bot = new Bot(process.env.TELEGRAM_BOT_API_KEY);
+if (!process.env.CONVEX_URL) {
+  throw new Error("CONVEX_URL is not set");
+}
 
-// Store minimal conversation context with response IDs for persistence
-const conversations = new Map<
-  number,
-  { messages: Array<any>; messageCount: number; lastResponseId?: string }
->();
+// Create bot with conversation flavor
+const bot = new Bot<MyContext>(process.env.TELEGRAM_BOT_API_KEY);
 
-// Track onboarding flows
-const onboardingFlows = new Map<number, OnboardingFlow>();
+// Install conversations plugin
+bot.use(conversations());
 
-// Track users who just completed initial challenge (need onboarding)
-const pendingOnboarding = new Set<number>();
+// Register conversation builders
+bot.use(createConversation(onboardingConversation, "onboarding"));
+bot.use(createConversation(fitnessConversation, "fitness_chat"));
+bot.use(createConversation(quickWorkoutConversation, "quick_workout"));
 
 // Helper to send messages naturally with typing
-async function sendNaturalMessage(ctx: Context, text: string) {
-  // Split by newlines to send as separate messages
+async function sendNaturalMessage(ctx: MyContext, text: string) {
   const messages = text.split("\n\n").filter((msg) => msg.trim());
 
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i]?.trim();
-    if (!message) continue;
+    if (!message) {
+      continue;
+    }
 
-    // Show typing
     await ctx.replyWithChatAction("typing");
-
-    // Calculate natural typing delay (30-50ms per character, capped)
     const typingDelay = Math.min(Math.max(message.length * 40, 500), 2000);
     await new Promise((resolve) => setTimeout(resolve, typingDelay));
-
-    // Send message
     await ctx.reply(message);
 
-    // Small pause between messages
     if (i < messages.length - 1) {
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
   }
 }
 
-// Start command - immediately give them a challenge
+// Start command - entry point for new users
 bot.command("start", async (ctx) => {
   const { id, is_bot, username, first_name, last_name } = ctx.from as User;
 
@@ -63,262 +63,77 @@ bot.command("start", async (ctx) => {
     return;
   }
 
-  // Create user in database
-  const user = await getOrCreateUser({
-    telegramId: id,
-    username,
-    firstName: first_name,
-    lastName: last_name,
-  });
-
-  // Initialize conversation
-  conversations.set(id, {
-    messages: [],
-    messageCount: 0,
-    lastResponseId: undefined,
-  });
-
-  // Check if user already completed onboarding
-  if (user?.onboardingComplete) {
-    await sendNaturalMessage(
-      ctx,
-      `yo ${first_name?.toLowerCase()}\n\nwelcome back! ready for another workout?`
-    );
-    return;
-  }
-
   try {
-    // Generate initial challenge immediately
-    const result = await fitnessCoach.generate({
-      messages: [
-        {
-          role: "user",
-          content: `new user ${first_name} just started. give them an easy quick challenge to get them moving right away`,
-        },
-      ],
-      // Let the agent decide when to use tools naturally
-      toolChoice: "auto",
-      // Allow 3 steps: tool call, tool result, text response
-      stopWhen: stepCountIs(3),
+    // Create or get user from database
+    const user = await getOrCreateUser({
+      telegramId: id,
+      username,
+      firstName: first_name,
+      lastName: last_name,
     });
 
-    // Log what happened for debugging
-    console.log(
-      `[${first_name}] Tool calls:`,
-      result.toolCalls.map((tc) => tc.toolName)
-    );
-    console.log(`[${first_name}] Steps taken:`, result.steps.length);
+    // Check if user already completed onboarding
+    if (user?.onboardingComplete) {
+      await sendNaturalMessage(
+        ctx,
+        `yo ${first_name?.toLowerCase()}\n\nwelcome back! ready for another workout?`
+      );
 
-    // Handle response - prioritize text, fall back to tool results
-    let message = result.text || "";
-    if (!message && result.toolResults?.length) {
-      message = extractAgentMessage(result);
-    }
-    if (!message) {
-      message = "let's start simple - give me 10 pushups";
+      // Enter fitness chat conversation
+      await ctx.conversation.enter("fitness_chat");
+      return;
     }
 
+    // New user - start with immediate challenge then onboarding
     await sendNaturalMessage(
       ctx,
-      `yo ${first_name?.toLowerCase()}\n\n${message}`
+      `yo ${first_name?.toLowerCase()}\n\nlet's see what you got - give me 10 pushups right now\n\n(modify on your knees if needed)`
     );
 
-    // Add to pending onboarding after initial challenge
-    pendingOnboarding.add(id);
-    console.log(`🔄 Added user ${id} to pending onboarding`);
-
-    // Store the interaction
-    const conv = conversations.get(id);
-    if (conv) {
-      conv.messages = result.response.messages;
-      conv.messageCount++;
-    }
+    // Enter onboarding conversation after initial challenge
+    await ctx.conversation.enter("onboarding");
   } catch (error) {
-    console.error("Error generating initial challenge:", error);
+    console.error("Error in start command:", error);
     await sendNaturalMessage(
       ctx,
       "yo! ready to move?\n\nlet's start simple - give me 10 pushups"
     );
-    // Still add to pending onboarding even if challenge failed
-    pendingOnboarding.add(id);
-  }
-});
 
-// Handle all text messages
-bot.on("message:text", async (ctx) => {
-  const { id } = ctx.from as User;
-  const userMessage = ctx.message.text;
-
-  if (!id || userMessage.startsWith("/")) {
-    return;
-  }
-
-  try {
-    // Check if user needs to start onboarding
-    if (pendingOnboarding.has(id)) {
-      pendingOnboarding.delete(id);
-
-      // Start onboarding flow
-      const onboardingFlow = new OnboardingFlow(id);
-      onboardingFlows.set(id, onboardingFlow);
-
-      console.log(`🎯 Starting onboarding for user ${id}`);
-
-      // Start with first onboarding question (includes acknowledgment)
-      const firstQuestion = await onboardingFlow.getNextQuestion();
-      await sendNaturalMessage(ctx, firstQuestion.text);
-      return;
-    }
-
-    // Check if user is in onboarding flow
-    const onboardingFlow = onboardingFlows.get(id);
-    if (onboardingFlow && !onboardingFlow.isComplete()) {
-      console.log(
-        `📝 Processing onboarding response from user ${id}: "${userMessage}"`
-      );
-
-      // Process the user's response (includes acknowledgment + next question)
-      const { acknowledgment, isComplete } =
-        await onboardingFlow.processResponse(userMessage);
-
-      // Send the combined response
-      await sendNaturalMessage(ctx, acknowledgment);
-
-      if (isComplete) {
-        // Onboarding complete - send completion message
-        onboardingFlows.delete(id);
-        const completionMessage = await onboardingFlow.getNextQuestion();
-        await sendNaturalMessage(ctx, completionMessage.text);
-        console.log(`✅ Completed onboarding for user ${id}`);
-      }
-      return;
-    }
-
-    // Handle normal conversation (user completed onboarding)
-    // Get or create conversation
-    let conv = conversations.get(id);
-    if (!conv) {
-      conv = { messages: [], messageCount: 0, lastResponseId: undefined };
-      conversations.set(id, conv);
-    }
-
-    // Build messages for the agent
-    const messages = [
-      ...conv.messages,
-      { role: "user" as const, content: userMessage },
-    ];
-
-    // Keep conversation history reasonable
-    if (messages.length > 20) {
-      messages.splice(0, messages.length - 20);
-    }
-
-    // Generate response with persistence via OpenAI Responses API
-    const result = await fitnessCoach.generate({
-      messages,
-      // Use auto tool choice to let agent decide naturally
-      toolChoice: "auto",
-      // Allow 3 steps: tool call, tool result, text response
-      stopWhen: stepCountIs(3),
-      // Use previous response ID for conversation persistence
-      ...(conv.lastResponseId && {
-        providerOptions: {
-          openai: {
-            previousResponseId: conv.lastResponseId,
-          },
-        },
-      }),
-    });
-
-    // Log for debugging
-    console.log(`[User ${id}] Message: "${userMessage}"`);
-    console.log(
-      `[User ${id}] Tool calls:`,
-      result.toolCalls.map((tc) => tc.toolName)
-    );
-    console.log(`[User ${id}] Steps taken:`, result.steps.length);
-    console.log(
-      `[User ${id}] Response ID:`,
-      result.providerMetadata?.openai?.responseId
-    );
-
-    // Handle response - prioritize text, fall back to tool results
-    let message = result.text || "";
-    if (!message && result.toolResults?.length) {
-      message = extractAgentMessage(result);
-    }
-    if (!message) {
-      message = "how you feeling? ready to move?";
-    }
-
-    await sendNaturalMessage(ctx, message);
-
-    // Update conversation with new response ID for persistence
-    conv.messages = result.response.messages;
-    conv.messageCount++;
-    conv.lastResponseId = result.providerMetadata?.openai?.responseId;
-
-    // Clean up old conversations periodically
-    if (conv.messageCount > 50) {
-      conv.messages = conv.messages.slice(-10);
-      conv.messageCount = 10;
-    }
-  } catch (error) {
-    console.error("Error in conversation:", error);
-    await sendNaturalMessage(
-      ctx,
-      "my bad, brain freeze\n\nhow you feeling though?"
-    );
+    // Still enter onboarding even if setup failed
+    await ctx.conversation.enter("onboarding");
   }
 });
 
 // Quick workout command
 bot.command("workout", async (ctx) => {
+  try {
+    await ctx.conversation.enter("quick_workout");
+  } catch (error) {
+    console.error("Error in workout command:", error);
+    await sendNaturalMessage(ctx, "alright let's go\n\n20 squats right now");
+  }
+});
+
+// Reset all conversations
+bot.command("reset", async (ctx) => {
   const { id } = ctx.from as User;
   if (!id) {
     return;
   }
 
   try {
-    const result = await fitnessCoach.generate({
-      messages: [
-        {
-          role: "user",
-          content: "give me a quick workout challenge right now",
-        },
-      ],
-      // Let the agent decide when to use tools
-      toolChoice: "auto",
-      // Allow 3 steps: tool call, tool result, text response
-      stopWhen: stepCountIs(3),
-    });
-
-    console.log(
-      "[Workout command] Tool calls:",
-      result.toolCalls.map((tc) => tc.toolName)
-    );
-
-    // Handle response - prioritize text, fall back to tool results
-    let message = result.text || "";
-    if (!message && result.toolResults?.length) {
-      message = extractAgentMessage(result);
-    }
-    if (!message) {
-      message = "alright let's go\n\n20 squats right now";
+    // Exit all active conversations
+    const activeConversations = ctx.conversation.active();
+    for (const [name] of Object.entries(activeConversations)) {
+      await ctx.conversation.exit(name);
     }
 
-    await sendNaturalMessage(ctx, message);
+    await sendNaturalMessage(ctx, "fresh start\n\nwhat's up?");
+
+    // Enter new fitness chat
+    await ctx.conversation.enter("fitness_chat");
   } catch (error) {
-    console.error("Error generating workout:", error);
-    await sendNaturalMessage(ctx, "alright let's go\n\n20 squats right now");
-  }
-});
-
-// Reset conversation
-bot.command("reset", async (ctx) => {
-  const { id } = ctx.from as User;
-  if (id) {
-    conversations.delete(id);
+    console.error("Error in reset command:", error);
     await sendNaturalMessage(ctx, "fresh start\n\nwhat's up?");
   }
 });
@@ -331,12 +146,86 @@ bot.command("help", async (ctx) => {
       "just talk to me normally\n\n" +
       "commands:\n" +
       "/workout - quick challenge\n" +
-      "/reset - fresh start\n\n" +
+      "/reset - fresh start\n" +
+      "/status - see active conversations\n\n" +
       "now stop reading and start moving"
   );
 });
 
-console.log("🏃 fitness coach bot starting...");
-console.log("💪 ready to get people moving!");
+// Status command to see active conversations
+bot.command("status", async (ctx) => {
+  const activeConversations = ctx.conversation.active();
+  const count = Object.values(activeConversations).reduce(
+    (sum, num) => sum + num,
+    0
+  );
+
+  if (count === 0) {
+    await sendNaturalMessage(
+      ctx,
+      "no active conversations\n\nuse /start to begin"
+    );
+  } else {
+    const conversationList = Object.entries(activeConversations)
+      .map(([name, count]) => `${name}: ${count}`)
+      .join("\n");
+
+    await sendNaturalMessage(
+      ctx,
+      `active conversations:\n${conversationList}\n\nuse /reset to start fresh`
+    );
+  }
+});
+
+// Handle regular messages - enter fitness chat if no conversation active
+bot.on("message:text", async (ctx) => {
+  const { id } = ctx.from as User;
+  if (!id || ctx.message.text.startsWith("/")) {
+    return;
+  }
+
+  try {
+    const activeConversations = ctx.conversation.active();
+    const hasActiveConversation = Object.values(activeConversations).some(
+      (count) => count > 0
+    );
+
+    if (!hasActiveConversation) {
+      // No active conversation, start fitness chat
+      await ctx.conversation.enter("fitness_chat");
+    }
+    // If there's an active conversation, it will handle the message
+  } catch (error) {
+    console.error("Error handling text message:", error);
+    await sendNaturalMessage(
+      ctx,
+      "my bad, brain freeze\n\nhow you feeling though?"
+    );
+  }
+});
+
+// Error handling
+bot.catch((err) => {
+  const ctx = err.ctx;
+  console.error(
+    `Error while handling update ${ctx.update.update_id}:`,
+    err.error
+  );
+
+  // Try to send a friendly error message
+  try {
+    if ("reply" in ctx) {
+      sendNaturalMessage(
+        ctx as MyContext,
+        "something went wrong\n\nhow about we try again?"
+      );
+    }
+  } catch (replyError) {
+    console.error("Could not send error message:", replyError);
+  }
+});
+
+console.log("🏃 fitness coach bot starting with conversations...");
+console.log("💪 ready to get people moving with persistent context!");
 
 bot.start();

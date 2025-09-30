@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.32",
+    "@grammyjs/conversations": "^2.1.0",
     "@jym/backend": "*",
     "ai": "^5.0.47",
     "convex": "^1.27.1",

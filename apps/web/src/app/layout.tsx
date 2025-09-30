@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Outfit } from "next/font/google";
 import localFont from "next/font/local";
+import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import "./globals.css";
+import { AutumnWrapper } from "@/components/AutumnProvider";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -13,31 +15,31 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const serif = localFont({
-  variable: "--font-instrument-serif",
+const rockGrotesk = localFont({
+  variable: "--font-rock-grotesk",
   src: [
     {
-      path: "../fonts/Erode-Light.woff2",
+      path: "../fonts/Kostic - Roc Grotesk Light.otf",
       weight: "300",
       style: "normal",
     },
     {
-      path: "../fonts/Erode-Regular.woff2",
+      path: "../fonts/Kostic - Roc Grotesk Regular.otf",
       weight: "400",
       style: "normal",
     },
     {
-      path: "../fonts/Erode-Medium.woff2",
+      path: "../fonts/Kostic - Roc Grotesk Medium.otf",
       weight: "500",
       style: "normal",
     },
     {
-      path: "../fonts/Erode-Semibold.woff2",
+      path: "../fonts/Kostic - Roc Grotesk Bold.otf",
       weight: "600",
       style: "normal",
     },
     {
-      path: "../fonts/Erode-Bold.woff2",
+      path: "../fonts/Kostic - Roc Grotesk ExtraBold.otf",
       weight: "700",
       style: "normal",
     },
@@ -45,7 +47,7 @@ const serif = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "jym | adaptive fitness coach",
+  title: "JYM | adaptive fitness coach",
   description: "adaptive fitness coach",
 };
 
@@ -57,9 +59,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${outfit.variable} ${geistMono.variable} ${serif.variable} antialiased`}
+        className={`${outfit.variable} ${geistMono.variable} ${rockGrotesk.variable} font-sans antialiased`}
       >
-        {children}
+        <ConvexClientProvider>
+          <AutumnWrapper>{children}</AutumnWrapper>
+        </ConvexClientProvider>
       </body>
     </html>
   );

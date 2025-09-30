@@ -1,0 +1,31 @@
+---
+description: General Product specification for the Jym app
+globs:
+alwaysApply: true
+---
+
+## Product Overview
+
+Jym is a personal adaptive fitness coach that helps users reach their goals through personalized workout plans and motivation. It interacts with the user via text messages via iMessage/WhatsApp/SMS with access to various tools.
+
+## Tech Stack
+
+- Next.js - for the web app, where user can manage their account etc
+- Convex
+- Tailwind CSS
+- Shadcn UI
+- Autumn - for billing and payments
+- OpenAI - for AI processing
+- Vercel AI SDK - for agent architecture
+- Convex agents - for conversation context
+- BetterAuth - for authentication
+- LoopMessage - for iMessage/WhatsApp/SMS integration
+- Twilio - for SMS integration
+- Vercel - for hosting
+
+## Features
+
+- Personalized workout plans
+- Reminders to workout
+- Adaptive workouts based on user feedback and progress
+- Advanced memory - remembers things about the user
