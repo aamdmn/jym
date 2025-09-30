@@ -101,7 +101,7 @@ export default function Page() {
   // State 3: User has an active workout
   if (activeWorkout) {
     const completedCount = activeWorkout.exercises.filter(
-      (ex) => ex.completed
+      (ex: { completed: boolean }) => ex.completed
     ).length;
     const totalCount = activeWorkout.exercises.length;
 

@@ -5,7 +5,26 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "CONVEX_DEPLOY_KEY",
+        "AUTUMN_SECRET_KEY",
+        "BETTER_AUTH_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "LOOPMESSAGE_AUTH_KEY",
+        "LOOPMESSAGE_SECRET_KEY",
+        "OPENAI_API_KEY",
+        "SITE_URL",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_PHONE_NUMBER",
+        "TWILIO_SERVICE_SID",
+        "WHATSAPP_ACCESS_TOKEN",
+        "WHATSAPP_PHONE_NUMBER_ID",
+        "WHATSAPP_VERIFY_TOKEN",
+        "NEXT_PUBLIC_CONVEX_URL"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]

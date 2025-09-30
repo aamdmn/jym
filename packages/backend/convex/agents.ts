@@ -123,35 +123,41 @@ export function createWorkoutAgent(_ctx: ActionCtx) {
 }
 
 // Legacy static agents for backward compatibility (if needed)
-export const jymAgent = new Agent(components.agent, {
-  name: "Jym",
-  languageModel: openai.chat("gpt-4.1"),
-  textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
-  instructions: MAIN_COACH_PROMPT,
-  maxSteps: 5,
-  tools: {
-    createTrigger: createTriggerTool,
-    wait: waitFunctionTool,
-  },
-  contextHandler: (_, args) => {
-    const context = createTimeAwareContextHandler(args);
-    return context;
-  },
-});
+export const jymAgent: Agent<typeof components.agent> = new Agent(
+  components.agent,
+  {
+    name: "Jym",
+    languageModel: openai.chat("gpt-4.1"),
+    textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
+    instructions: MAIN_COACH_PROMPT,
+    maxSteps: 5,
+    tools: {
+      createTrigger: createTriggerTool,
+      wait: waitFunctionTool,
+    },
+    contextHandler: (_, args) => {
+      const context = createTimeAwareContextHandler(args);
+      return context;
+    },
+  }
+);
 
-export const onboardingAgent = new Agent(components.agent, {
-  name: "Onboarding Jym",
-  languageModel: openai.chat("gpt-4.1"),
-  textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
-  instructions: ONBOARDING_PROMPT,
-  maxSteps: 3,
-  tools: {
-    checkOnboarding: checkOnboardingTool,
-    updateOnboarding: updateOnboardingTool,
-    completeOnboarding: completeOnboardingTool,
-  },
-  contextHandler: (_, args) => {
-    const context = createTimeAwareContextHandler(args);
-    return context;
-  },
-});
+export const onboardingAgent: Agent<typeof components.agent> = new Agent(
+  components.agent,
+  {
+    name: "Onboarding Jym",
+    languageModel: openai.chat("gpt-4.1"),
+    textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
+    instructions: ONBOARDING_PROMPT,
+    maxSteps: 3,
+    tools: {
+      checkOnboarding: checkOnboardingTool,
+      updateOnboarding: updateOnboardingTool,
+      completeOnboarding: completeOnboardingTool,
+    },
+    contextHandler: (_, args) => {
+      const context = createTimeAwareContextHandler(args);
+      return context;
+    },
+  }
+);
