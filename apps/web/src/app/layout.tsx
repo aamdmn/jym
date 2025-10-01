@@ -48,7 +48,7 @@ const rockGrotesk = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "JYM | adaptive fitness coach",
+  title: "jym.coach | adaptive fitness coach",
   description: "adaptive fitness coach",
 };
 
