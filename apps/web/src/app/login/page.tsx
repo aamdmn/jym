@@ -3,7 +3,6 @@
 import { IconBrandGoogle } from "@tabler/icons-react";
 import Image from "next/image";
 import { useState } from "react";
-import { TelegramLoginButton } from "@/components/telegram-login";
 import { Button } from "@/components/ui/button";
 import runner from "../../../public/runner.png";
 import { authClient } from "../../lib/auth-client";
@@ -11,8 +10,6 @@ import { authClient } from "../../lib/auth-client";
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
   const signInWithGoogle = async () => {
     setIsLoading(true);

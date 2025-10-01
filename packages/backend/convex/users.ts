@@ -224,13 +224,20 @@ export const syncTelegramId = mutation({
       }
 
       // Check if user has accounts linked (Telegram would be stored here)
-      const accounts = await ctx.runQuery(components.betterAuth.lib.findMany, {
-        model: "account",
-        where: [{ field: "userId", value: args.userId }],
-      });
+      const accountsResult = await ctx.runQuery(
+        components.betterAuth.lib.findMany,
+        {
+          model: "account",
+          where: [{ field: "userId", value: args.userId }],
+          paginationOpts: {
+            cursor: null,
+            numItems: 10, // Get up to 10 accounts (should be plenty)
+          },
+        }
+      );
 
       // Find Telegram account
-      const telegramAccount = accounts.find(
+      const telegramAccount = accountsResult.page.find(
         (acc: any) => acc.providerId === "telegram"
       );
 
