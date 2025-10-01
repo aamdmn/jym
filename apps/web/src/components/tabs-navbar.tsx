@@ -6,9 +6,7 @@ import {
   IconHomeFilled,
   IconSettings,
   IconSettingsFilled,
-  IconTrendingUp,
 } from "@tabler/icons-react";
-import { SettingsIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -25,16 +23,16 @@ export default function TabsNavbar() {
 
   // Determine active tab based on current pathname
   const getActiveTab = () => {
-    if (pathname === "/app" || pathname === "/app/") {
+    if (pathname === "/dashboard" || pathname === "/dashboard/") {
       return "home";
     }
-    if (pathname.startsWith("/app/workouts")) {
+    if (pathname.startsWith("/dashboard/workouts")) {
       return "workouts";
     }
-    if (pathname.startsWith("/app/progress")) {
+    if (pathname.startsWith("/dashboard/progress")) {
       return "progress";
     }
-    if (pathname.startsWith("/app/settings")) {
+    if (pathname.startsWith("/dashboard/settings")) {
       return "settings";
     }
 
@@ -47,19 +45,19 @@ export default function TabsNavbar() {
   const handleTabChange = (value: string) => {
     switch (value) {
       case "home":
-        router.push("/app");
+        router.push("/dashboard");
         break;
       case "workouts":
-        router.push("/app/workouts");
+        router.push("/dashboard/workouts");
         break;
       case "progress":
-        router.push("/app/progress");
+        router.push("/dashboard/progress");
         break;
       case "settings":
-        router.push("/app/settings");
+        router.push("/dashboard/settings");
         break;
       default:
-        router.push("/app");
+        router.push("/dashboard");
     }
   };
 

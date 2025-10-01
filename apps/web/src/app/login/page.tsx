@@ -20,7 +20,7 @@ export default function LoginPage() {
       // or directly to /app for returning users
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/app", // All users go to phone verification first
+        callbackURL: "/dashboard", // All users go to phone verification first
         newUserCallbackURL: "/verify-phone",
       });
     } catch {

@@ -53,7 +53,7 @@ export default function WorkoutsPage() {
         {activeWorkout && (
           <Link
             className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 transition-colors hover:bg-primary/10"
-            href="/app"
+            href="/dashboard"
           >
             <Dumbbell className="size-5 text-primary" />
             <div className="flex-1">
@@ -121,7 +121,7 @@ export default function WorkoutsPage() {
       {activeWorkout && (
         <Link
           className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 transition-colors hover:bg-primary/10"
-          href="/app"
+          href="/dashboard"
         >
           <Dumbbell className="size-5 text-primary" />
           <div className="flex-1">

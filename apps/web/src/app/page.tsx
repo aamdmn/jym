@@ -21,7 +21,7 @@ export default function Home() {
         <div className="mt-10 flex w-full items-center justify-between gap-2">
           <Logo className="h-9" theme="light" />
           <div>
-            <Link href={data ? "/app" : "/login"}>
+            <Link href={data ? "/dashboard" : "/login"}>
               {isPending ? (
                 <Button size={"sm"} variant="ghost">
                   <IconLoader2 className="size-4 animate-spin stroke-[1.3px]" />
@@ -34,7 +34,7 @@ export default function Home() {
                   ) : (
                     <IconLogin2 className="size-5 stroke-[1.3px]" />
                   )}
-                  {data ? "App" : "Login"}
+                  {data ? "Dashboard" : "Login"}
                 </Button>
               )}
             </Link>

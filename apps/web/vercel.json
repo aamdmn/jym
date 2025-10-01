@@ -1,3 +1,23 @@
 {
-  "buildCommand": "cd ../../packages/backend && npx convex deploy --cmd 'cd ../../apps/web && turbo run build' --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL"
+  "buildCommand": "cd ../../packages/backend && npx convex deploy --cmd 'cd ../../apps/web && turbo run build' --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/:path*" },
+    { "source": "/dashboard/:path*", "destination": "/dashboard/:path*" },
+    { "source": "/login", "destination": "/login" },
+    { "source": "/onboarding/:path*", "destination": "/onboarding/:path*" },
+    { "source": "/verify-phone", "destination": "/verify-phone" },
+    { "source": "/link-telegram", "destination": "/link-telegram" },
+    { "source": "/ex/:path*", "destination": "/ex/:path*" },
+
+    { "source": "/_next/:path*", "destination": "/_next/:path*" },
+
+    {
+      "source": "/",
+      "destination": "https://jym.framer.website/"
+    },
+    {
+      "source": "/:path*",
+      "destination": "https://jym.framer.website/:path*"
+    }
+  ]
 }

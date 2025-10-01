@@ -10,7 +10,7 @@ export default function OnboardingPage() {
     // Server-side layout already validated phone + email
     // Just redirect to app immediately
     const timeoutId = setTimeout(() => {
-      router.push("/app");
+      router.push("/dashboard");
     }, 1000);
 
     return () => clearTimeout(timeoutId);

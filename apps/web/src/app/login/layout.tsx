@@ -15,7 +15,7 @@ export default async function LoginLayout({
   if (user && !user.phoneNumber) {
     redirect("/verify-phone");
   } else if (user) {
-    redirect("/app");
+    redirect("/dashboard");
   }
 
   return <div>{children}</div>;

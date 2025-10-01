@@ -50,7 +50,7 @@ export default function ExercisePage({
     return (
       <div className="mx-auto my-10 flex max-w-xl flex-col gap-6 px-4">
         <Button asChild className="-ml-4 w-fit" variant="ghost">
-          <Link href="/app">
+          <Link href="/dashboard">
             <ArrowLeft className="size-4" />
             Back to Workout
           </Link>
@@ -72,7 +72,7 @@ export default function ExercisePage({
     return (
       <div className="mx-auto my-10 flex max-w-xl flex-col gap-6 px-4">
         <Button asChild className="-ml-4 w-fit" variant="ghost">
-          <Link href="/app">
+          <Link href="/dashboard">
             <ArrowLeft className="size-4" />
             Back to Workout
           </Link>
@@ -93,7 +93,7 @@ export default function ExercisePage({
     <div className="mx-auto my-10 flex max-w-xl flex-col gap-8 px-4">
       {/* Back Button */}
       <Button asChild className="-ml-4 w-fit" variant="ghost">
-        <Link href="/app">
+        <Link href="/dashboard">
           <ArrowLeft className="size-4" />
           Back to Workout
         </Link>
