@@ -83,10 +83,26 @@ async function createTimeAwareContextHandler(args: {
 export function createJymAgent(_ctx: ActionCtx) {
   return new Agent(components.agent, {
     name: "Jym",
+    callSettings: {
+      temperature: 0.7,
+    },
     languageModel: openai.chat("gpt-4.1"),
     textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
     instructions: MAIN_COACH_PROMPT,
     maxSteps: 5,
+    contextOptions: {
+      recentMessages: 10,
+      searchOptions: {
+        textSearch: true,
+        limit: 10,
+        vectorSearch: true,
+        vectorScoreThreshold: 0.5,
+        messageRange: {
+          before: 10,
+          after: 10,
+        },
+      },
+    },
     tools: {
       checkUserReadiness,
       createTrigger: createTriggerTool,
@@ -119,6 +135,9 @@ export function createOnboardingAgent(_ctx: ActionCtx) {
     textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
     instructions: ONBOARDING_PROMPT,
     maxSteps: 5,
+    callSettings: {
+      temperature: 0.5,
+    },
     tools: {
       checkOnboarding: checkOnboardingTool,
       updateOnboarding: updateOnboardingTool,
@@ -140,6 +159,9 @@ export function createOnboardingAgent(_ctx: ActionCtx) {
 export function createWorkoutAgent(_ctx: ActionCtx) {
   return new Agent(components.agent, {
     name: "Workout Jym",
+    callSettings: {
+      temperature: 0.5,
+    },
     languageModel: openai.chat("gpt-4.1"),
     textEmbeddingModel: openai.textEmbedding("text-embedding-3-small"),
     instructions: `You are a workout generation specialist for Jym, a fitness coaching app.
