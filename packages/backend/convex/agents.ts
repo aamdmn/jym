@@ -16,6 +16,7 @@ import {
   createTriggerTool,
   editWorkoutTool,
   getCurrentExerciseTool,
+  reactWithEmojiTool,
   startWorkoutTool,
   updateOnboardingTool,
   updateWorkoutTool,
@@ -95,6 +96,7 @@ export function createJymAgent(_ctx: ActionCtx) {
       getCurrentExercise: getCurrentExerciseTool,
       editWorkout: editWorkoutTool,
       completeWorkout: completeWorkoutTool,
+      reactWithEmoji: reactWithEmojiTool,
     },
     contextHandler: async (ctx, args) => {
       const context = await createTimeAwareContextHandler({
@@ -123,6 +125,7 @@ export function createOnboardingAgent(_ctx: ActionCtx) {
       completeOnboarding: completeOnboardingTool,
       createTrigger: createTriggerTool,
       wait: waitFunctionTool,
+      reactWithEmoji: reactWithEmojiTool,
     },
     contextHandler: async (ctx, args) => {
       const context = await createTimeAwareContextHandler({

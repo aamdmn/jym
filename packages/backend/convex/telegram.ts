@@ -1,7 +1,12 @@
 import { createThread } from "@convex-dev/agent";
 import { v } from "convex/values";
 import { api, components, internal } from "./_generated/api";
-import { action, internalAction, internalMutation } from "./_generated/server";
+import {
+  action,
+  internalAction,
+  internalMutation,
+  query,
+} from "./_generated/server";
 import { createJymAgent, createOnboardingAgent } from "./agents";
 
 /**
@@ -126,6 +131,13 @@ export const generateResponse = internalAction({
     const { userId, telegramId, messageText, messageId } = args;
 
     try {
+      // Store the current message context so tools can access it for reactions
+      await ctx.runMutation(internal.telegram.storeMessageContext, {
+        userId,
+        chatId: telegramId,
+        messageId,
+      });
+
       // Find existing thread for this user or create a new one
       const existingThreads = await ctx.runQuery(
         components.agent.threads.listThreadsByUserId,
@@ -429,6 +441,156 @@ function parseResponseIntoMessages(responseText: string): string[] {
 
   return messages;
 }
+
+/**
+ * Store the current message context for a user (for emoji reactions)
+ */
+export const storeMessageContext = internalMutation({
+  args: {
+    userId: v.string(),
+    chatId: v.number(),
+    messageId: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { userId, chatId, messageId } = args;
+
+    // Find existing context
+    const existing = await ctx.db
+      .query("telegramMessageContext")
+      .withIndex("by_user_id")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first();
+
+    if (existing) {
+      // Update existing
+      await ctx.db.patch(existing._id, {
+        chatId,
+        messageId,
+        updatedAt: Date.now(),
+      });
+    } else {
+      // Create new
+      await ctx.db.insert("telegramMessageContext", {
+        userId,
+        chatId,
+        messageId,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return null;
+  },
+});
+
+/**
+ * Get the current message context for a user
+ */
+export const getMessageContext = query({
+  args: {
+    userId: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      chatId: v.number(),
+      messageId: v.number(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const context = await ctx.db
+      .query("telegramMessageContext")
+      .withIndex("by_user_id")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .first();
+
+    if (!context) {
+      return null;
+    }
+
+    return {
+      chatId: context.chatId,
+      messageId: context.messageId,
+    };
+  },
+});
+
+/**
+ * React to a Telegram message with an emoji
+ * This action makes a direct HTTP call to Telegram Bot API
+ */
+export const reactToMessage = internalAction({
+  args: {
+    chatId: v.number(),
+    messageId: v.number(),
+    emoji: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (_ctx, args) => {
+    const { chatId, messageId, emoji } = args;
+
+    try {
+      const botToken = process.env.TELEGRAM_BOT_API_KEY;
+
+      if (!botToken) {
+        console.error("TELEGRAM_BOT_API_KEY not found in environment");
+        return {
+          success: false,
+          message: "Bot token not configured",
+        };
+      }
+
+      const url = `https://api.telegram.org/bot${botToken}/setMessageReaction`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+          reaction: [
+            {
+              type: "emoji",
+              emoji,
+            },
+          ],
+        }),
+      });
+
+      const data = (await response.json()) as {
+        ok: boolean;
+        description?: string;
+      };
+
+      if (!data.ok) {
+        console.error("Failed to set reaction:", data.description);
+        return {
+          success: false,
+          message: data.description || "Failed to set reaction",
+        };
+      }
+
+      console.log(`Successfully reacted to message ${messageId} with ${emoji}`);
+
+      return {
+        success: true,
+        message: `Reacted with ${emoji}`,
+      };
+    } catch (error) {
+      console.error("Error setting message reaction:", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      };
+    }
+  },
+});
 
 /**
  * Link telegram account to existing betterAuth user

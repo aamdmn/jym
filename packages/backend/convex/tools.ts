@@ -166,6 +166,111 @@ export const waitFunctionTool = createTool({
   },
 });
 
+export const reactWithEmojiTool = createTool({
+  description:
+    "React to the user's message with an emoji. Use this to acknowledge the user's message with personality without sending text. ONLY works on Telegram. Use valid Telegram reaction emojis ONLY.",
+  args: z.object({
+    emoji: z
+      .string()
+      .describe(
+        "The emoji to react with. MUST be one of these valid Telegram reactions: 👍 (thumbs up), 🔥 (fire), 🎉 (party), 🏆 (trophy), 💯 (hundred), 👏 (clap), 😍 (heart eyes), 🤩 (star eyes), 😁 (grin), 🤔 (thinking), 👀 (eyes), 🙏 (pray), 💪 (flex - might not work), ❤️ (heart), ⚡ (lightning). DO NOT use emojis not in this list or the reaction will fail."
+      ),
+  }),
+  handler: async (ctx, args, _options) => {
+    if (!ctx.userId) {
+      return {
+        success: false,
+        message: "User not authenticated",
+      };
+    }
+
+    // Validate emoji - only allow known working Telegram reactions
+    const validEmojis = [
+      "👍",
+      "👎",
+      "❤️",
+      "🔥",
+      "🥰",
+      "👏",
+      "😁",
+      "🤔",
+      "🤯",
+      "😱",
+      "😢",
+      "🎉",
+      "🤩",
+      "🙏",
+      "👌",
+      "🤡",
+      "😍",
+      "🏆",
+      "💯",
+      "🤣",
+      "⚡",
+      "💔",
+      "🤨",
+      "😐",
+      "😈",
+      "😴",
+      "😭",
+      "🤓",
+      "👻",
+      "👀",
+      "🙈",
+      "😇",
+      "🤝",
+      "🤗",
+      "🆒",
+      "🙉",
+      "😘",
+      "🙊",
+      "😎",
+      "👾",
+      "😡",
+    ];
+
+    if (!validEmojis.includes(args.emoji)) {
+      console.warn(`Invalid emoji for Telegram reaction: ${args.emoji}`);
+      return {
+        success: false,
+        message: `Emoji "${args.emoji}" is not a valid Telegram reaction. Use one of: 👍 🔥 🎉 🏆 💯 👏 ❤️ ⚡`,
+      };
+    }
+
+    try {
+      // Get the message context (chat ID and message ID)
+      const messageContext = await ctx.runQuery(api.telegram.getMessageContext, {
+        userId: ctx.userId,
+      });
+
+      if (!messageContext) {
+        return {
+          success: false,
+          message: "No message context found. User might not be on Telegram.",
+        };
+      }
+
+      // Call the action to react to the message
+      const result = await ctx.runAction(internal.telegram.reactToMessage, {
+        chatId: messageContext.chatId,
+        messageId: messageContext.messageId,
+        emoji: args.emoji,
+      });
+
+      return result;
+    } catch (error) {
+      console.error("Error reacting with emoji:", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to react with emoji",
+      };
+    }
+  },
+});
+
 // Diagnostic tool to check user readiness for workout generation
 export const checkUserReadiness = createTool({
   description: "Check if user is authenticated and ready to start a workout",

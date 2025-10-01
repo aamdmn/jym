@@ -199,4 +199,12 @@ export default defineSchema({
     completedAt: v.optional(v.number()),
     errors: v.array(v.string()),
   }),
+
+  // Store Telegram message context for emoji reactions
+  telegramMessageContext: defineTable({
+    userId: v.string(),
+    chatId: v.number(),
+    messageId: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user_id", ["userId"]),
 });
