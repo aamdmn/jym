@@ -166,6 +166,86 @@ export const waitFunctionTool = createTool({
   },
 });
 
+// Diagnostic tool to check user readiness for workout generation
+export const checkUserReadiness = createTool({
+  description: "Check if user is authenticated and ready to start a workout",
+  args: z.object({}),
+  handler: async (
+    ctx,
+    _args,
+    _options
+  ): Promise<{
+    authenticated: boolean;
+    hasProfile: boolean;
+    onboardingComplete: boolean;
+    ready: boolean;
+    message: string;
+  }> => {
+    console.log("[checkUserReadiness] Checking user readiness...");
+
+    // Check authentication
+    if (!ctx.userId) {
+      console.log("[checkUserReadiness] User not authenticated");
+      return {
+        authenticated: false,
+        hasProfile: false,
+        onboardingComplete: false,
+        ready: false,
+        message: "User is not authenticated. Please log in first.",
+      };
+    }
+
+    // Check profile exists
+    let profile;
+    try {
+      profile = await ctx.runQuery(api.users.getUserProfile, {
+        userId: ctx.userId,
+      });
+    } catch (error) {
+      console.error("[checkUserReadiness] Error fetching profile:", error);
+      return {
+        authenticated: true,
+        hasProfile: false,
+        onboardingComplete: false,
+        ready: false,
+        message: "Error fetching user profile. Please try again.",
+      };
+    }
+
+    if (!profile) {
+      console.log("[checkUserReadiness] Profile not found");
+      return {
+        authenticated: true,
+        hasProfile: false,
+        onboardingComplete: false,
+        ready: false,
+        message: "User profile not found. Please complete onboarding.",
+      };
+    }
+
+    // Check onboarding status
+    if (!profile.onboardingComplete) {
+      console.log("[checkUserReadiness] Onboarding not complete");
+      return {
+        authenticated: true,
+        hasProfile: true,
+        onboardingComplete: false,
+        ready: false,
+        message: "Onboarding not complete. Please complete onboarding first.",
+      };
+    }
+
+    console.log("[checkUserReadiness] User is ready!");
+    return {
+      authenticated: true,
+      hasProfile: true,
+      onboardingComplete: true,
+      ready: true,
+      message: "User is ready to start workout generation!",
+    };
+  },
+});
+
 // Helper function to get energy description
 function getEnergyDescription(energy: number): string {
   if (energy <= 3) {
@@ -205,29 +285,50 @@ export const startWorkoutTool = createTool({
       threadId: ctx.threadId,
     });
 
+    // Critical: Check if user is authenticated
     if (!ctx.userId) {
-      throw new Error("No userId available in context");
+      console.error(
+        "[startWorkout] ERROR: No userId in context - user not authenticated"
+      );
+      throw new Error(
+        "Authentication required: Please log in to generate workouts"
+      );
     }
 
     // Get user profile
-    console.log("[startWorkout] Fetching user profile...");
-    const profile = await ctx.runQuery(api.users.getUserProfile, {
-      userId: ctx.userId,
-    });
+    console.log("[startWorkout] Fetching user profile for userId:", ctx.userId);
+    let profile;
+    try {
+      profile = await ctx.runQuery(api.users.getUserProfile, {
+        userId: ctx.userId,
+      });
+    } catch (error) {
+      console.error("[startWorkout] Error fetching user profile:", error);
+      throw new Error("Failed to fetch user profile. Please try again.");
+    }
 
     if (!profile) {
       console.error(
         "[startWorkout] User profile not found for userId:",
         ctx.userId
       );
-      throw new Error("User profile not found");
+      throw new Error(
+        "User profile not found. Please complete onboarding first."
+      );
     }
 
-    console.log("[startWorkout] User profile loaded:", {
+    // Check if onboarding is complete
+    if (!profile.onboardingComplete) {
+      console.error("[startWorkout] User has not completed onboarding");
+      throw new Error("Please complete onboarding before starting a workout");
+    }
+
+    console.log("[startWorkout] User profile loaded successfully:", {
       equipment: profile.equipment,
       goals: profile.goals,
       injuries: profile.injuries,
       measuringSystem: profile.mesuringSystem,
+      onboardingComplete: profile.onboardingComplete,
     });
 
     const preferences = {
@@ -448,7 +549,17 @@ Generate a complete, balanced workout that matches the user's energy level and g
 
   let result;
   try {
-    result = await workoutAgent.generateObject(
+    // Add timeout to prevent infinite hanging
+    const timeoutMs = 30_000; // 30 seconds timeout
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(
+        () =>
+          reject(new Error("Workout generation timed out after 30 seconds")),
+        timeoutMs
+      )
+    );
+
+    const generationPromise = workoutAgent.generateObject(
       ctx,
       { threadId: ctx.threadId, userId: ctx.userId },
       {
@@ -493,6 +604,8 @@ Generate a complete, balanced workout that matches the user's energy level and g
         }),
       }
     );
+
+    result = await Promise.race([generationPromise, timeoutPromise]);
     console.log("[generateSimpleWorkout] AI generation completed successfully");
     console.log(
       "[generateSimpleWorkout] Generated exercises count:",
@@ -504,7 +617,27 @@ Generate a complete, balanced workout that matches the user's energy level and g
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
-    throw error;
+
+    // Provide user-friendly error messages
+    if (error instanceof Error) {
+      if (error.message.includes("timeout")) {
+        throw new Error(
+          "Workout generation took too long. Please try again with simpler preferences."
+        );
+      }
+      if (
+        error.message.includes("API") ||
+        error.message.includes("rate limit")
+      ) {
+        throw new Error(
+          "Service temporarily unavailable. Please try again in a moment."
+        );
+      }
+    }
+
+    throw new Error(
+      `Failed to generate workout: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
   }
 
   // Validate that all generated slugs exist in the database

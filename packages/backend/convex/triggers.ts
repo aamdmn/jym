@@ -37,10 +37,22 @@ export const createTrigger = internalMutation({
     const { userId, triggerMessage, runAt, phoneNumber, threadId, metadata } =
       args;
 
+    // Get user's platform and identifiers from userProfile
+    const userProfile = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_user_id")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first();
+
+    const platform = userProfile?.platform || "loopmessage"; // Default to loopmessage
+    const telegramId = userProfile?.telegramId;
+
     // Create a trigger record in the database
     const triggerId = await ctx.db.insert("triggers", {
       userId,
+      platform,
       phoneNumber,
+      telegramId,
       triggerMessage,
       scheduledTime: runAt,
       threadId,
@@ -64,7 +76,7 @@ export const createTrigger = internalMutation({
     });
 
     console.log(
-      `Created trigger ${triggerId} for user ${userId} to run at ${new Date(
+      `Created trigger ${triggerId} for user ${userId} (platform: ${platform}) to run at ${new Date(
         runAt
       ).toISOString()}`
     );
@@ -193,12 +205,38 @@ export const executeTrigger = internalAction({
         `Generated response for trigger ${triggerId}: ${result.text}`
       );
 
-      // Send the message to the user via LoopMessage
-      await ctx.runAction(internal.loopmessage.sendSplitMessages, {
-        phoneNumber: trigger.phoneNumber,
-        responseText: result.text,
-        // No originalMessageId since this is a proactive message
-      });
+      // Determine the platform (default to loopmessage for legacy triggers)
+      const platform = trigger.platform || "telegram";
+
+      // Send the message to the user via the appropriate platform
+      if (platform === "telegram" && trigger.telegramId) {
+        // Send via Telegram
+        await ctx.runAction(internal.telegram.sendSplitMessages, {
+          telegramId: trigger.telegramId,
+          responseText: result.text,
+        });
+        console.log(
+          `Sent trigger message via Telegram to ${trigger.telegramId}`
+        );
+      } else if (trigger.phoneNumber) {
+        // Send via LoopMessage (default for SMS/iMessage and legacy triggers)
+        await ctx.runAction(internal.loopmessage.sendSplitMessages, {
+          phoneNumber: trigger.phoneNumber,
+          responseText: result.text,
+          // No originalMessageId since this is a proactive message
+        });
+        console.log(
+          `Sent trigger message via LoopMessage to ${trigger.phoneNumber}`
+        );
+      } else {
+        console.error(`No valid contact method for trigger ${triggerId}`);
+        await ctx.runMutation(internal.triggers.updateTriggerStatus, {
+          triggerId,
+          status: "failed",
+          error: "No valid contact method (phoneNumber or telegramId)",
+        });
+        return null;
+      }
 
       // Mark trigger as completed
       await ctx.runMutation(internal.triggers.updateTriggerStatus, {
@@ -207,7 +245,7 @@ export const executeTrigger = internalAction({
         completedAt: Date.now(),
       });
 
-      console.log(`Successfully executed trigger ${triggerId}`);
+      console.log(`Successfully executed trigger ${triggerId} via ${platform}`);
     } catch (error) {
       console.error(`Error executing trigger ${triggerId}:`, error);
 
@@ -235,7 +273,9 @@ export const getTrigger = internalQuery({
       _id: v.id("triggers"),
       _creationTime: v.number(),
       userId: v.string(),
-      phoneNumber: v.string(),
+      platform: v.optional(v.string()),
+      phoneNumber: v.optional(v.string()),
+      telegramId: v.optional(v.number()),
       triggerMessage: v.string(),
       scheduledTime: v.number(),
       threadId: v.optional(v.string()),

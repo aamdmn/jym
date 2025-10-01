@@ -311,6 +311,126 @@ export const handleMessage = action({
 });
 
 /**
+ * Send message via Telegram Bot API
+ * This is used for proactive messages like triggers
+ */
+export const sendMessage = internalAction({
+  args: {
+    telegramId: v.number(),
+    message: v.string(),
+  },
+  returns: v.null(),
+  handler: async (_ctx, args) => {
+    const { telegramId, message } = args;
+
+    try {
+      const botToken = process.env.TELEGRAM_BOT_API_KEY;
+
+      if (!botToken) {
+        console.error("TELEGRAM_BOT_API_KEY not configured");
+        return null;
+      }
+
+      // Telegram Bot API endpoint
+      const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: telegramId,
+          text: message,
+          link_preview_options: { is_disabled: true },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Telegram API error: ${response.status} - ${errorText}`);
+        return null;
+      }
+
+      const result = await response.json();
+      console.log(
+        `Message sent successfully to telegram ${telegramId}:`,
+        result
+      );
+    } catch (error) {
+      console.error("Error sending message via Telegram:", error);
+    }
+
+    return null;
+  },
+});
+
+/**
+ * Split messages and send them via Telegram
+ * Similar to LoopMessage's sendSplitMessages but for Telegram
+ */
+export const sendSplitMessages = internalAction({
+  args: {
+    telegramId: v.number(),
+    responseText: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { telegramId, responseText } = args;
+
+    // Parse the response text into individual messages
+    const messages = parseResponseIntoMessages(responseText);
+
+    // Send each message
+    for (const message of messages) {
+      await ctx.runAction(internal.telegram.sendMessage, {
+        telegramId,
+        message,
+      });
+    }
+
+    return null;
+  },
+});
+
+/**
+ * Parse response text and handle multiline tags
+ */
+function parseResponseIntoMessages(responseText: string): string[] {
+  const messages: string[] = [];
+  const multilineRegex = /<multiline>([\s\S]*?)<\/multiline>/g;
+  let lastIndex = 0;
+
+  let match = multilineRegex.exec(responseText);
+  while (match !== null) {
+    // Add any text before this multiline block
+    const beforeText = responseText.slice(lastIndex, match.index).trim();
+    if (beforeText) {
+      const lines = beforeText.split("\n").filter((line) => line.trim());
+      messages.push(...lines);
+    }
+
+    // Add the multiline content as a single message
+    const multilineContent = match[1]?.trim();
+    if (multilineContent) {
+      messages.push(multilineContent);
+    }
+
+    lastIndex = match.index + match[0].length;
+    match = multilineRegex.exec(responseText);
+  }
+
+  // Add any remaining text after the last multiline block
+  const remainingText = responseText.slice(lastIndex).trim();
+  if (remainingText) {
+    const lines = remainingText.split("\n").filter((line) => line.trim());
+    messages.push(...lines);
+  }
+
+  return messages;
+}
+
+/**
  * Link telegram account to existing betterAuth user
  */
 export const linkTelegramAccount = internalMutation({

@@ -3,7 +3,7 @@ import { fetchQuery } from "convex/nextjs";
 import { redirect } from "next/navigation";
 import { getToken } from "@/lib/auth-server";
 
-export default async function LoginLayout({
+export default async function OnboardingLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -11,35 +11,36 @@ export default async function LoginLayout({
   const token = await getToken();
 
   if (!token) {
-    return <div>{children}</div>;
+    redirect("/login");
   }
 
   const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
 
   if (!user) {
-    return <div>{children}</div>;
+    redirect("/login");
   }
 
-  // User is logged in, check their onboarding status
+  // Must have phone number
   if (!user.phoneNumber) {
     redirect("/verify-phone");
   }
 
-  // Get user profile to check Telegram and onboarding
+  // Get user profile
   const profile = await fetchQuery(
     api.users.getUserProfile,
     { userId: user.id },
     { token }
   );
 
+  // Must have Telegram linked
   if (!profile?.telegramId) {
     redirect("/link-telegram");
   }
 
-  if (!profile.onboardingComplete) {
-    redirect("/onboarding");
+  // If onboarding already complete, go to app
+  if (profile.onboardingComplete) {
+    redirect("/app");
   }
 
-  // All steps complete, go to app
-  redirect("/app");
+  return <div>{children}</div>;
 }

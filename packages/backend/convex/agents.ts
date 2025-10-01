@@ -9,6 +9,7 @@ import { authComponent } from "./auth";
 import { MAIN_COACH_PROMPT, ONBOARDING_PROMPT } from "./prompts";
 import {
   checkOnboardingTool,
+  checkUserReadiness,
   completeOnboardingTool,
   completeWorkoutTool,
   createTriggerTool,
@@ -85,6 +86,7 @@ export function createJymAgent(_ctx: ActionCtx) {
     instructions: MAIN_COACH_PROMPT,
     maxSteps: 5,
     tools: {
+      checkUserReadiness,
       createTrigger: createTriggerTool,
       wait: waitFunctionTool,
       startWorkout: startWorkoutTool,

@@ -23,7 +23,9 @@ export default defineSchema({
   // Triggers for scheduled proactive messages
   triggers: defineTable({
     userId: v.string(), // User who the trigger belongs to
-    phoneNumber: v.string(), // Phone number to send the message to
+    platform: v.optional(v.string()), // Messaging platform: "telegram", "sms", "loopmessage", "whatsapp" (optional for backwards compatibility)
+    phoneNumber: v.optional(v.string()), // Phone number (for SMS/LoopMessage/WhatsApp)
+    telegramId: v.optional(v.number()), // Telegram ID (for Telegram)
     triggerMessage: v.string(), // The message/context for the agent
     scheduledTime: v.number(), // When the trigger should fire (timestamp)
     threadId: v.optional(v.string()), // Agent thread ID if available

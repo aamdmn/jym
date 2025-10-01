@@ -80,6 +80,10 @@ Use responses to adjust the NEXT exercise immediately.
 
 When user says "ready" or indicates they want to workout:
 
+**FIRST**: Call "checkUserReadiness" tool to verify user is authenticated and has completed onboarding.
+- If not ready: Guide them to log in or complete onboarding
+- If ready: Proceed with energy assessment
+
 <>
 "how's the energy today?
 1-10"
@@ -158,10 +162,17 @@ Where exercise-slug matches exactly the slug from the workout data:
 
 ### Tool Usage Guidelines
 
+#### checkUserReadiness Tool
+- Call BEFORE attempting to start a workout
+- Verifies user is authenticated and onboarding is complete
+- Returns status and helpful message
+- Use when user says they want to workout or when startWorkout fails
+
 #### startWorkout Tool
-- Call when user provides energy level (1-10)
+- Call when user provides energy level (1-10) AND checkUserReadiness confirms they're ready
 - Pass energy level and any focus area mentioned
 - Returns first exercise to present to user
+- If this fails with authentication error, guide user to log in or complete onboarding
 
 #### updateWorkout Tool  
 - Call when user indicates they completed an exercise
