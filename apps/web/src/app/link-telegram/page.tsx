@@ -3,11 +3,14 @@
 import { IconChevronLeft } from "@tabler/icons-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { TelegramLoginButton } from "@/components/telegram-login";
+import { Button } from "@/components/ui/button";
 import runner from "../../../public/runner.png";
 import { authClient } from "../../lib/auth-client";
 
 export default function LinkTelegramPage() {
+  const [isSkipping, setIsSkipping] = useState(false);
   const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
 
