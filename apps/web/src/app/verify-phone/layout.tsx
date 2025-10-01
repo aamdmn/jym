@@ -25,7 +25,7 @@ export default async function VerifyPhoneLayout({
     // Check if they have Telegram linked
     const profile = await fetchQuery(
       api.users.getUserProfile,
-      { userId: user.id },
+      { userId: user._id },
       { token }
     );
 

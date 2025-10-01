@@ -28,7 +28,7 @@ export default async function LinkTelegramLayout({
   // Check if already has Telegram linked
   const profile = await fetchQuery(
     api.users.getUserProfile,
-    { userId: user.id },
+    { userId: user._id },
     { token }
   );
 

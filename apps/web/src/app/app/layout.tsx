@@ -28,7 +28,7 @@ export default async function AppLayout({
   // Get user profile
   const profile = await fetchQuery(
     api.users.getUserProfile,
-    { userId: user.id },
+    { userId: user._id },
     { token }
   );
 

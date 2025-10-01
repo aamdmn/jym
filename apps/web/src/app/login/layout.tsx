@@ -28,7 +28,7 @@ export default async function LoginLayout({
   // Get user profile to check Telegram and onboarding
   const profile = await fetchQuery(
     api.users.getUserProfile,
-    { userId: user.id },
+    { userId: user._id },
     { token }
   );
 
