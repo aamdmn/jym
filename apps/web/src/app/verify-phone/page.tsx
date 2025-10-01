@@ -25,7 +25,7 @@ export default function VerifyPhonePage() {
   const [error, setError] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [verificationAttempts, setVerificationAttempts] = useState(0);
-  const { data: session, isPending, refetch } = authClient.useSession();
+  const { refetch } = authClient.useSession();
   const cooldownTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const router = useRouter();
@@ -47,23 +47,7 @@ export default function VerifyPhonePage() {
     };
   }, []);
 
-  const user = session?.user;
-
-  // Show loading while checking authentication
-  if (isPending) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    router.push("/login");
-    return null;
-  }
+  // Layout already validates authentication, no need to check here
 
   const startCooldown = () => {
     setResendCooldown(RESEND_COOLDOWN_SECONDS);
@@ -251,17 +235,6 @@ export default function VerifyPhonePage() {
     }
     return "Didn't receive the code? Resend";
   };
-
-  // Show loading while checking authentication
-  if (!user) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="relative flex h-screen flex-col items-center justify-center">

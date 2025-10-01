@@ -3,61 +3,12 @@
 import { IconChevronLeft } from "@tabler/icons-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { TelegramLoginButton } from "@/components/telegram-login";
 import runner from "../../../public/runner.png";
-import { authClient } from "../../lib/auth-client";
 
 export default function LinkTelegramPage() {
-  const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
-
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
-
-  // Handle redirects in useEffect to avoid redirect loops
-  useEffect(() => {
-    if (!isPending) {
-      const user = session?.user;
-
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      // Give session time to update after phone verification
-      // Only redirect if user REALLY doesn't have a phone number
-      if (!user.phoneNumber) {
-        // Wait a bit to check if phone number is being updated
-        const timeoutId = setTimeout(() => {
-          if (!session?.user?.phoneNumber) {
-            router.push("/verify-phone");
-          }
-        }, 1000);
-
-        return () => clearTimeout(timeoutId);
-      }
-
-      setIsChecking(false);
-    }
-  }, [isPending, session, router]);
-
-  // Show loading while checking authentication
-  if (isPending || isChecking) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const user = session?.user;
-
-  if (!user?.phoneNumber) {
-    return null;
-  }
 
   const handleTelegramAuth = () => {
     // After successful Telegram auth, redirect to onboarding
