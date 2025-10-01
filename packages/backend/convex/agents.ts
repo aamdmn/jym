@@ -6,7 +6,8 @@ import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
 import { authComponent } from "./auth";
-import { MAIN_COACH_PROMPT, ONBOARDING_PROMPT } from "./prompts";
+import { ONBOARDING_PROMPT } from "./onboarding_prompt";
+import { MAIN_COACH_PROMPT } from "./prompts";
 import {
   checkOnboardingTool,
   checkUserReadiness,

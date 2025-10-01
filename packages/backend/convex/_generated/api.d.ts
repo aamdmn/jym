@@ -16,6 +16,7 @@ import type * as exercisesScraper from "../exercisesScraper.js";
 import type * as firecrawl from "../firecrawl.js";
 import type * as http from "../http.js";
 import type * as loopmessage from "../loopmessage.js";
+import type * as onboarding_prompt from "../onboarding_prompt.js";
 import type * as otp_twilioSDK from "../otp/twilioSDK.js";
 import type * as otpRateLimit from "../otpRateLimit.js";
 import type * as playground from "../playground.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   firecrawl: typeof firecrawl;
   http: typeof http;
   loopmessage: typeof loopmessage;
+  onboarding_prompt: typeof onboarding_prompt;
   "otp/twilioSDK": typeof otp_twilioSDK;
   otpRateLimit: typeof otpRateLimit;
   playground: typeof playground;

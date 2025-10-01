@@ -378,12 +378,18 @@ export const startWorkoutTool = createTool({
 
     console.log("[startWorkout] Workout stored with ID:", workoutResult._id);
 
-    // Return the excercises and the first exercise
+    // Return the exercises and the first exercise with clear instructions
     return {
       totalExercises: exercises.exercises.length,
-      allExercises: exercises.exercises,
       firstExercise: exercises.exercises[0],
       workoutId: workoutResult._id,
+      // Add explicit instruction for the agent
+      agentInstruction:
+        "Present ONLY the firstExercise to user with the exact name, sets/reps, and slug provided. Include the link: https://jym.coach/ex/" +
+        exercises.exercises[0].slug,
+      nextStep:
+        "Wait for user to say 'done' then call updateWorkout with slug: " +
+        exercises.exercises[0].slug,
     };
   },
 });
@@ -724,6 +730,8 @@ export const updateWorkoutTool = createTool({
         message: "All exercises completed! Workout is done!",
         progress: result.progress,
         isLastExercise: true,
+        agentInstruction:
+          "Workout is complete. Congratulate user briefly and ask how they feel.",
       };
     }
 
@@ -732,6 +740,13 @@ export const updateWorkoutTool = createTool({
       progress: result.progress,
       complete: false,
       isLastExercise: false,
+      // Add explicit instruction for the agent
+      agentInstruction:
+        "Present ONLY the nextExercise to user with the exact name, sets/reps, and slug provided. Include the link: https://jym.coach/ex/" +
+        result.nextExercise.slug,
+      nextStep:
+        "Wait for user to say 'done' then call updateWorkout with slug: " +
+        result.nextExercise.slug,
     };
   },
 });
