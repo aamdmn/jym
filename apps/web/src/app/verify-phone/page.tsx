@@ -25,7 +25,7 @@ export default function VerifyPhonePage() {
   const [error, setError] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [verificationAttempts, setVerificationAttempts] = useState(0);
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, isPending, refetch } = authClient.useSession();
   const cooldownTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const router = useRouter();
@@ -206,8 +206,17 @@ export default function VerifyPhonePage() {
         await handleVerifyError(verifyError);
       } else {
         await logVerifyAttempt({ phoneNumber, success: true });
+
+        // CRITICAL: Refresh the session to get updated user data
+        // This ensures the phoneNumber is available in the next page
+        await refetch();
+
+        // Small delay to ensure session is fully updated
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
         // After phone verification, redirect to Telegram linking
         router.push("/link-telegram");
+        router.refresh(); // Force a router refresh
       }
     } catch (err) {
       await logVerifyAttempt({ phoneNumber, success: false });

@@ -3,21 +3,47 @@
 import { IconChevronLeft } from "@tabler/icons-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TelegramLoginButton } from "@/components/telegram-login";
-import { Button } from "@/components/ui/button";
 import runner from "../../../public/runner.png";
 import { authClient } from "../../lib/auth-client";
 
 export default function LinkTelegramPage() {
-  const [isSkipping, setIsSkipping] = useState(false);
   const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
 
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
+  // Handle redirects in useEffect to avoid redirect loops
+  useEffect(() => {
+    if (!isPending) {
+      const user = session?.user;
+
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      // Give session time to update after phone verification
+      // Only redirect if user REALLY doesn't have a phone number
+      if (!user.phoneNumber) {
+        // Wait a bit to check if phone number is being updated
+        const timeoutId = setTimeout(() => {
+          if (!session?.user?.phoneNumber) {
+            router.push("/verify-phone");
+          }
+        }, 1000);
+
+        return () => clearTimeout(timeoutId);
+      }
+
+      setIsChecking(false);
+    }
+  }, [isPending, session, router]);
+
   // Show loading while checking authentication
-  if (isPending) {
+  if (isPending || isChecking) {
     return (
       <div className="flex h-screen flex-col items-center justify-center">
         <div className="text-center">
@@ -29,20 +55,12 @@ export default function LinkTelegramPage() {
 
   const user = session?.user;
 
-  if (!user) {
-    router.push("/login");
-    return null;
-  }
-
-  // If user doesn't have a phone number, redirect to verify-phone
-  if (!user.phoneNumber) {
-    router.push("/verify-phone");
+  if (!user?.phoneNumber) {
     return null;
   }
 
   const handleTelegramAuth = () => {
     // After successful Telegram auth, redirect to onboarding
-    console.log("Telegram auth successful, redirecting...");
     router.push("/onboarding");
     router.refresh();
   };

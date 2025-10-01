@@ -239,9 +239,12 @@ export const reactWithEmojiTool = createTool({
 
     try {
       // Get the message context (chat ID and message ID)
-      const messageContext = await ctx.runQuery(api.telegram.getMessageContext, {
-        userId: ctx.userId,
-      });
+      const messageContext = await ctx.runQuery(
+        api.telegram.getMessageContext,
+        {
+          userId: ctx.userId,
+        }
+      );
 
       if (!messageContext) {
         return {
@@ -263,9 +266,7 @@ export const reactWithEmojiTool = createTool({
       return {
         success: false,
         message:
-          error instanceof Error
-            ? error.message
-            : "Failed to react with emoji",
+          error instanceof Error ? error.message : "Failed to react with emoji",
       };
     }
   },
