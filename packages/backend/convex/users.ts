@@ -236,17 +236,30 @@ export const syncTelegramId = mutation({
         }
       );
 
-      // Find Telegram account
+      console.log("Found accounts for user:", accountsResult.page.length);
+      console.log(
+        "Account details:",
+        JSON.stringify(accountsResult.page, null, 2)
+      );
+
+      // Find Telegram account - check both "telegram" and "telegram-bot"
       const telegramAccount = accountsResult.page.find(
-        (acc: any) => acc.providerId === "telegram"
+        (acc: any) =>
+          acc.providerId === "telegram" || acc.providerId === "telegram-bot"
       );
 
       if (!telegramAccount) {
+        console.error(
+          "No Telegram account found. Available providers:",
+          accountsResult.page.map((acc: any) => acc.providerId).join(", ")
+        );
         return {
           success: false,
-          message: "No Telegram account found for this user",
+          message: `No Telegram account found for this user. Found: ${accountsResult.page.map((acc: any) => acc.providerId).join(", ")}`,
         };
       }
+
+      console.log("Found Telegram account:", telegramAccount);
 
       // Extract Telegram ID from account
       const telegramId = Number.parseInt(telegramAccount.accountId);
