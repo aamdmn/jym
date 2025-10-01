@@ -10,7 +10,7 @@ import Link from "next/link";
 import Logo from "@/components/icons/logo";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { createWhatsAppDeepLink } from "@/lib/utils";
+import { createTelegramDeepLink } from "@/lib/utils";
 
 export default function Home() {
   const { data, isPending } = authClient.useSession();
@@ -49,7 +49,7 @@ export default function Home() {
           <Button
             className="mt-8"
             onClick={() => {
-              createWhatsAppDeepLink({ message: "yo, what's up jym?" });
+              createTelegramDeepLink({ message: "yo, what's up jym?" });
             }}
             size={"lg"}
             variant="default"

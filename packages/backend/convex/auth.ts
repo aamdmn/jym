@@ -3,6 +3,7 @@ import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
 import { phoneNumber } from "better-auth/plugins";
 import { v } from "convex/values";
+import { telegram } from "telegram-better-auth";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
@@ -11,6 +12,8 @@ const siteUrl = process.env.SITE_URL;
 if (!siteUrl) {
   throw new Error("SITE_URL is not set");
 }
+
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
 
 // The component client has methods needed for integrating Convex with Better Auth,
 // as well as helper methods for general use.
@@ -51,6 +54,17 @@ export const createAuth = (
         },
         // Removed signUpOnVerification since users must sign up with Google first
       }),
+
+      // Telegram authentication plugin
+      ...(telegramBotToken
+        ? [
+            telegram({
+              botToken: telegramBotToken,
+              // Generate a temporary email for Telegram users
+              getTempEmail: (id) => `telegram_${id}@jym.coach`,
+            }),
+          ]
+        : []),
 
       // The Convex plugin is required for Convex compatibility
       convex(),

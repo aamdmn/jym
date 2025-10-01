@@ -206,7 +206,8 @@ export default function VerifyPhonePage() {
         await handleVerifyError(verifyError);
       } else {
         await logVerifyAttempt({ phoneNumber, success: true });
-        router.push("/onboarding");
+        // After phone verification, redirect to Telegram linking
+        router.push("/link-telegram");
       }
     } catch (err) {
       await logVerifyAttempt({ phoneNumber, success: false });

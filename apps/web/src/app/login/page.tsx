@@ -3,6 +3,7 @@
 import { IconBrandGoogle } from "@tabler/icons-react";
 import Image from "next/image";
 import { useState } from "react";
+import { TelegramLoginButton } from "@/components/telegram-login";
 import { Button } from "@/components/ui/button";
 import runner from "../../../public/runner.png";
 import { authClient } from "../../lib/auth-client";
@@ -10,6 +11,8 @@ import { authClient } from "../../lib/auth-client";
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
   const signInWithGoogle = async () => {
     setIsLoading(true);
@@ -68,6 +71,29 @@ export default function LoginPage() {
             <IconBrandGoogle className="mb-1 size-5 fill-primary stroke-none" />
             {isLoading ? "Signing in..." : "Continue with Google"}
           </Button>
+
+          {botUsername && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-background/20 border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-black/0 px-2 text-background/60">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <TelegramLoginButton
+                  botUsername={botUsername}
+                  buttonSize="large"
+                  cornerRadius={8}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import WorkoutCard from "@/components/workout-card";
 import WorkoutStats from "@/components/workout-stats";
 import { authClient } from "@/lib/auth-client";
-import { createWhatsAppDeepLink } from "@/lib/utils";
+import { createTelegramDeepLink } from "@/lib/utils";
 
 export default function Page() {
   const { data: session } = authClient.useSession();
@@ -57,7 +57,7 @@ export default function Page() {
         <Button
           className="w-fit"
           onClick={() => {
-            createWhatsAppDeepLink({
+            createTelegramDeepLink({
               message: "done! let's  get started",
             });
           }}
@@ -87,7 +87,7 @@ export default function Page() {
         <Button
           className="w-fit"
           onClick={() => {
-            createWhatsAppDeepLink({ message: "let's start a workout!" });
+            createTelegramDeepLink({ message: "let's start a workout!" });
           }}
           size="lg"
         >
@@ -131,7 +131,7 @@ export default function Page() {
         <Button
           className="w-fit"
           onClick={() => {
-            createWhatsAppDeepLink({ message: "Continue workout" });
+            createTelegramDeepLink({ message: "Continue workout" });
           }}
           size="lg"
         >
@@ -163,7 +163,7 @@ export default function Page() {
         <Button
           className="w-fit"
           onClick={() => {
-            createWhatsAppDeepLink({ message: "let's start a new workout!" });
+            createTelegramDeepLink({ message: "let's start a new workout!" });
           }}
           size="lg"
         >
