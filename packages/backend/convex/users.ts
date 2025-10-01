@@ -154,6 +154,7 @@ export const createUserProfile = mutation({
     mesuringSystem: v.optional(
       v.union(v.literal("metric"), v.literal("imperial"))
     ),
+    telegramId: v.optional(v.number()),
   },
   returns: v.id("userProfiles"),
   handler: async (ctx, args) => {
@@ -164,12 +165,20 @@ export const createUserProfile = mutation({
       .first();
 
     if (existingProfile) {
+      // If telegram ID provided, update it
+      if (args.telegramId !== undefined) {
+        await ctx.db.patch(existingProfile._id, {
+          telegramId: args.telegramId,
+          platform: args.platform,
+        });
+      }
       return existingProfile._id;
     }
 
     // Create new user profile with default values
     const profileId = await ctx.db.insert("userProfiles", {
       userId: args.userId,
+      telegramId: args.telegramId,
       platform: args.platform,
       onboardingComplete: false,
       fitnessLevel: "",
@@ -180,6 +189,109 @@ export const createUserProfile = mutation({
     });
 
     return profileId;
+  },
+});
+
+/**
+ * Sync Telegram ID from betterAuth user to userProfile
+ * Called after successful Telegram linking
+ */
+export const syncTelegramId = mutation({
+  args: {
+    userId: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    telegramId: v.optional(v.number()),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    try {
+      // Get betterAuth user to find Telegram data
+      const betterAuthUser = await ctx.runQuery(
+        components.betterAuth.lib.findOne,
+        {
+          model: "user",
+          where: [{ field: "id", value: args.userId }],
+        }
+      );
+
+      if (!betterAuthUser) {
+        return {
+          success: false,
+          message: "User not found in betterAuth",
+        };
+      }
+
+      // Check if user has accounts linked (Telegram would be stored here)
+      const accounts = await ctx.runQuery(components.betterAuth.lib.findMany, {
+        model: "account",
+        where: [{ field: "userId", value: args.userId }],
+      });
+
+      // Find Telegram account
+      const telegramAccount = accounts.find(
+        (acc: any) => acc.providerId === "telegram"
+      );
+
+      if (!telegramAccount) {
+        return {
+          success: false,
+          message: "No Telegram account found for this user",
+        };
+      }
+
+      // Extract Telegram ID from account
+      const telegramId = Number.parseInt(telegramAccount.accountId);
+
+      if (Number.isNaN(telegramId)) {
+        return {
+          success: false,
+          message: "Invalid Telegram ID format",
+        };
+      }
+
+      // Find or create user profile
+      const userProfile = await ctx.db
+        .query("userProfiles")
+        .withIndex("by_user_id")
+        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .first();
+
+      if (userProfile) {
+        // Update existing profile
+        await ctx.db.patch(userProfile._id, {
+          telegramId,
+          platform: "telegram",
+        });
+      } else {
+        // Create new profile
+        await ctx.db.insert("userProfiles", {
+          userId: args.userId,
+          telegramId,
+          platform: "telegram",
+          onboardingComplete: false,
+          fitnessLevel: "",
+          goals: "",
+          equipment: "",
+          injuries: "",
+          mesuringSystem: "metric",
+        });
+      }
+
+      return {
+        success: true,
+        telegramId,
+        message: "Telegram ID synced successfully",
+      };
+    } catch (error) {
+      console.error("Error syncing Telegram ID:", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Failed to sync Telegram ID",
+      };
+    }
   },
 });
 

@@ -40,14 +40,11 @@ export default function LinkTelegramPage() {
     return null;
   }
 
-  const handleSkip = () => {
-    setIsSkipping(true);
-    router.push("/onboarding");
-  };
-
   const handleTelegramAuth = () => {
     // After successful Telegram auth, redirect to onboarding
-    // This is handled in the TelegramLoginButton component
+    console.log("Telegram auth successful, redirecting...");
+    router.push("/onboarding");
+    router.refresh();
   };
 
   return (
@@ -125,19 +122,10 @@ export default function LinkTelegramPage() {
             </div>
           )}
 
-          {/* Skip Button */}
+          {/* Info about requirement */}
           <div className="text-center">
-            <Button
-              className="text-background/70 hover:text-background"
-              disabled={isSkipping}
-              onClick={handleSkip}
-              size="sm"
-              variant="ghost"
-            >
-              {isSkipping ? "Redirecting..." : "Skip for now"}
-            </Button>
-            <p className="mt-2 text-background/60 text-xs">
-              You can always connect Telegram later in settings
+            <p className="text-background/70 text-sm">
+              Telegram connection is required to use Jym's AI coaching features
             </p>
           </div>
         </div>

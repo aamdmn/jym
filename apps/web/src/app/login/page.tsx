@@ -50,8 +50,9 @@ export default function LoginPage() {
           <h1 className="font-medium font-serif text-3xl text-background">
             Welcome to Jym
           </h1>
-          <p className="mt-2 text-background/70 text-sm">
-            Sign in with your Google account to get started
+          <p className="mt-2 text-background/80 text-base leading-relaxed">
+            Your AI fitness coach in Telegram. Sign in with Google to get
+            started.
           </p>
         </div>
 
@@ -72,28 +73,9 @@ export default function LoginPage() {
             {isLoading ? "Signing in..." : "Continue with Google"}
           </Button>
 
-          {botUsername && (
-            <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-background/20 border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-black/0 px-2 text-background/60">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex justify-center">
-                <TelegramLoginButton
-                  botUsername={botUsername}
-                  buttonSize="large"
-                  cornerRadius={8}
-                />
-              </div>
-            </>
-          )}
+          <p className="text-center text-background/70 text-sm">
+            After signing in, you'll connect your phone and Telegram
+          </p>
         </div>
       </div>
     </div>

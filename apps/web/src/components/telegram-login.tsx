@@ -56,36 +56,60 @@ export function TelegramLoginButton({
       try {
         console.log("Telegram auth received:", user);
 
-        // Sign in/link Telegram using better-auth
-        const result = await authClient.signIn.telegram(user);
+        // Link Telegram to existing account using better-auth
+        // This will update the current user's account with Telegram data
+        await authClient.signIn.telegram(user);
 
-        // Callback if provided
+        // Wait for session to update
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Get current session to get userId
+        const { data: session } = await authClient.getSession();
+        const userId = session?.user?.id;
+
+        if (userId) {
+          // Sync Telegram ID from betterAuth to userProfile
+          console.log("Syncing Telegram ID to userProfile...");
+
+          // Import api dynamically to avoid circular dependencies
+          const { api } = await import("@jym/backend/convex/_generated/api");
+          const ConvexReactClient = (await import("convex/react"))
+            .ConvexReactClient;
+
+          // Get convex client instance
+          const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+          if (convexUrl) {
+            const tempConvex = new ConvexReactClient(convexUrl);
+            const syncResult = await tempConvex.mutation(
+              api.users.syncTelegramId,
+              {
+                userId,
+              }
+            );
+
+            console.log("Telegram sync result:", syncResult);
+
+            if (!syncResult.success) {
+              console.error("Failed to sync Telegram ID:", syncResult.message);
+              alert(
+                `Telegram connected, but sync failed: ${syncResult.message}`
+              );
+            }
+          }
+        }
+
+        // Callback if provided (from link-telegram page)
         if (onAuth) {
           onAuth();
-          router.refresh();
-          return;
-        }
-
-        // Default behavior: check if user needs phone verification
-        // Refresh session to get updated user data
-        router.refresh();
-
-        // Wait a bit for session to update
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // Get fresh session
-        const { data: session } = await authClient.getSession();
-        const currentUser = session?.user;
-
-        if (currentUser?.phoneNumber) {
-          // Existing user linking Telegram or returning user
-          router.push("/onboarding");
         } else {
-          // New Telegram user needs phone verification
-          router.push("/verify-phone");
+          // Default: go to onboarding after linking
+          router.push("/onboarding");
         }
+
+        router.refresh();
       } catch (error) {
         console.error("Telegram authentication failed:", error);
+        alert("Failed to connect Telegram. Please try again.");
       }
     };
 
