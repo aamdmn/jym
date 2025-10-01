@@ -193,81 +193,38 @@ export const createUserProfile = mutation({
 });
 
 /**
- * Sync Telegram ID from betterAuth user to userProfile
- * Called after successful Telegram linking
+ * Link Telegram ID directly to userProfile
+ * Called after successful Telegram widget authentication
  */
-export const syncTelegramId = mutation({
+export const linkTelegramToProfile = mutation({
   args: {
     userId: v.string(),
+    telegramId: v.number(),
+    username: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
   },
   returns: v.object({
     success: v.boolean(),
-    telegramId: v.optional(v.number()),
     message: v.string(),
   }),
   handler: async (ctx, args) => {
     try {
-      // Get betterAuth user to find Telegram data
-      const betterAuthUser = await ctx.runQuery(
-        components.betterAuth.lib.findOne,
-        {
-          model: "user",
-          where: [{ field: "id", value: args.userId }],
-        }
-      );
+      const { userId, telegramId, username, firstName, lastName } = args;
 
-      if (!betterAuthUser) {
+      console.log(`Linking Telegram ID ${telegramId} to user ${userId}`);
+
+      // Check if this Telegram ID is already linked to a different user
+      const existingProfile = await ctx.db
+        .query("userProfiles")
+        .withIndex("by_telegram_id")
+        .filter((q) => q.eq(q.field("telegramId"), telegramId))
+        .first();
+
+      if (existingProfile && existingProfile.userId !== userId) {
         return {
           success: false,
-          message: "User not found in betterAuth",
-        };
-      }
-
-      // Check if user has accounts linked (Telegram would be stored here)
-      const accountsResult = await ctx.runQuery(
-        components.betterAuth.lib.findMany,
-        {
-          model: "account",
-          where: [{ field: "userId", value: args.userId }],
-          paginationOpts: {
-            cursor: null,
-            numItems: 10, // Get up to 10 accounts (should be plenty)
-          },
-        }
-      );
-
-      console.log("Found accounts for user:", accountsResult.page.length);
-      console.log(
-        "Account details:",
-        JSON.stringify(accountsResult.page, null, 2)
-      );
-
-      // Find Telegram account - check both "telegram" and "telegram-bot"
-      const telegramAccount = accountsResult.page.find(
-        (acc: any) =>
-          acc.providerId === "telegram" || acc.providerId === "telegram-bot"
-      );
-
-      if (!telegramAccount) {
-        console.error(
-          "No Telegram account found. Available providers:",
-          accountsResult.page.map((acc: any) => acc.providerId).join(", ")
-        );
-        return {
-          success: false,
-          message: `No Telegram account found for this user. Found: ${accountsResult.page.map((acc: any) => acc.providerId).join(", ")}`,
-        };
-      }
-
-      console.log("Found Telegram account:", telegramAccount);
-
-      // Extract Telegram ID from account
-      const telegramId = Number.parseInt(telegramAccount.accountId);
-
-      if (Number.isNaN(telegramId)) {
-        return {
-          success: false,
-          message: "Invalid Telegram ID format",
+          message: "This Telegram account is already linked to another user",
         };
       }
 
@@ -275,7 +232,7 @@ export const syncTelegramId = mutation({
       const userProfile = await ctx.db
         .query("userProfiles")
         .withIndex("by_user_id")
-        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .filter((q) => q.eq(q.field("userId"), userId))
         .first();
 
       if (userProfile) {
@@ -284,10 +241,11 @@ export const syncTelegramId = mutation({
           telegramId,
           platform: "telegram",
         });
+        console.log(`Updated existing profile for user ${userId}`);
       } else {
         // Create new profile
         await ctx.db.insert("userProfiles", {
-          userId: args.userId,
+          userId,
           telegramId,
           platform: "telegram",
           onboardingComplete: false,
@@ -297,19 +255,23 @@ export const syncTelegramId = mutation({
           injuries: "",
           mesuringSystem: "metric",
         });
+        console.log(`Created new profile for user ${userId}`);
       }
+
+      const displayName = firstName || username || `User ${telegramId}`;
 
       return {
         success: true,
-        telegramId,
-        message: "Telegram ID synced successfully",
+        message: `Telegram account linked successfully for ${displayName}!`,
       };
     } catch (error) {
-      console.error("Error syncing Telegram ID:", error);
+      console.error("Error linking Telegram to profile:", error);
       return {
         success: false,
         message:
-          error instanceof Error ? error.message : "Failed to sync Telegram ID",
+          error instanceof Error
+            ? error.message
+            : "Failed to link Telegram account",
       };
     }
   },

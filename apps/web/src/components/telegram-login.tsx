@@ -68,8 +68,8 @@ export function TelegramLoginButton({
         const userId = session?.user?.id;
 
         if (userId) {
-          // Sync Telegram ID from betterAuth to userProfile
-          console.log("Syncing Telegram ID to userProfile...");
+          // Link Telegram ID directly to userProfile using data from the widget
+          console.log("Linking Telegram to userProfile...");
 
           // Import api dynamically to avoid circular dependencies
           const { api } = await import("@jym/backend/convex/_generated/api");
@@ -80,21 +80,28 @@ export function TelegramLoginButton({
           const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
           if (convexUrl) {
             const tempConvex = new ConvexReactClient(convexUrl);
-            const syncResult = await tempConvex.mutation(
-              api.users.syncTelegramId,
+            const linkResult = await tempConvex.mutation(
+              api.users.linkTelegramToProfile,
               {
                 userId,
+                telegramId: user.id, // Telegram ID directly from widget
+                username: user.username,
+                firstName: user.first_name,
+                lastName: user.last_name,
               }
             );
 
-            console.log("Telegram sync result:", syncResult);
+            console.log("Telegram link result:", linkResult);
 
-            if (!syncResult.success) {
-              console.error("Failed to sync Telegram ID:", syncResult.message);
+            if (!linkResult.success) {
+              console.error("Failed to link Telegram:", linkResult.message);
               alert(
-                `Telegram connected, but sync failed: ${syncResult.message}`
+                `Telegram connected, but link failed: ${linkResult.message}`
               );
+              return;
             }
+
+            console.log("✅ Telegram linked successfully:", linkResult.message);
           }
         }
 
