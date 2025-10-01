@@ -294,6 +294,16 @@ export const exerciseExists = query({
   },
 });
 
+// Get all existing exercise slugs (for scraper to filter)
+export const getAllExerciseSlugs = query({
+  args: {},
+  returns: v.array(v.string()),
+  handler: async (ctx) => {
+    const exercises = await ctx.db.query("exercises").collect();
+    return exercises.map((ex) => ex.slug);
+  },
+});
+
 // Get exercises for workout generation (lightweight with just essential info)
 export const getExercisesForWorkout = query({
   args: {
