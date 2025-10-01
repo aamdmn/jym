@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
@@ -613,5 +614,21 @@ export const editWorkout = mutation({
           message: "Invalid action",
         };
     }
+  },
+});
+
+export const getAllWorkoutsByUserId = query({
+  args: { userId: v.string(), paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    // Only return completed workouts
+    const result = await ctx.db
+      .query("workouts")
+      .withIndex("by_user_active", (q) =>
+        q.eq("userId", args.userId).eq("completed", true)
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    return result;
   },
 });
